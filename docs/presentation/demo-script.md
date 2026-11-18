@@ -41,7 +41,7 @@ Target length is **14 min 20 s**, inside the 10–15 minute limit. The slides ar
 3. Click **Yes** next to *Ely*: "Ely is in today, so the planner can now use Ely."
 
 **0:30 Plan page.** Click **Plan my day**.
-4. Read the headline sentence aloud: *6 tasks scheduled, all on time*.
+4. Read the headline sentence aloud: *7 tasks scheduled, all on time*. Point at Ely's row: "Because Ely checked in, the 3-hour video cut-downs that had no slot before now go to Ely at 13:00."
 5. Hover over a couple of timeline bars: "Each person's day, planned around meetings and lunch. That's the greedy allocator, fed by the heap."
 
 **1:10 Compare the two rules.** Switch **Prioritise by** to **Order received**.
@@ -60,5 +60,5 @@ Target length is **14 min 20 s**, inside the 10–15 minute limit. The slides ar
 
 ### If something breaks
 - **App won't start or the page errors:** play `docs/videos/02-plan-and-compare.mp4` and `05-cycle-detection.mp4` and narrate over them.
-- **Data looks different from this script:** click **Reset demo** in the sidebar and carry on. The headline numbers return to *6 tasks, all on time*.
+- **Data looks different from this script:** click **Reset demo** in the sidebar and redo steps 1–3. Before the two "Yes" clicks the plan shows *6 tasks*; after them, *7*.
 - **Confetti doesn't show:** keep going. The "Locked in" list proves the commit worked.

@@ -5,3 +5,5 @@ data/
 *.tmp
 .venv/
 docs/videos/raw/
+trailer/build/
+trailer/vendor/node_modules/

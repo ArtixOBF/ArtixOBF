@@ -132,7 +132,7 @@ reuses the same engine.
 \node[box=orange!10, right=2mm of heap] (win) {Intervals\\\texttt{windows.py}};
 \node[box=green!8, below=4mm of heap, minimum width=46mm] (chk) {Invariant checker \& metrics (tests, benchmarks)};
 \draw[->] (ui) -- (app); \draw[->] (app) -- (store);
-\draw[->] (store.south) |- (alloc.east);
+\draw[->] (store.south) -- (store.south |- alloc.north);
 \draw[->] (alloc) -- (graph); \draw[->] (alloc) -- (heap); \draw[->] (alloc) -- (win);
 \draw[->, dashed] (heap) -- (chk);
 \end{tikzpicture}

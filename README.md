@@ -33,6 +33,25 @@ The first launch seeds a **synthetic** demo agency into `data/state.json`
 
 More screenshots are in [`docs/screenshots/`](docs/screenshots/).
 
+## Demo videos
+
+`docs/videos/campaignflow-demo.mp4` is the full walkthrough (about 2 minutes 50 seconds). It joins these five clips:
+
+| Clip | Shows |
+|---|---|
+| `01-daily-review.mp4` | Splash screen, Today page, confirming a gate, checking someone in, filters, search, bulk select |
+| `02-plan-and-compare.mp4` | The recommended plan, the timeline, and switching to the entry-order rule, which makes the banner late |
+| `03-lock-in.mp4` | Unticking a task, locking in the plan (confetti), and unlocking a commitment |
+| `04-new-campaign.mp4` | Creating a campaign from a template, then a client requesting changes, which adds a revision round |
+| `05-cycle-detection.mp4` | DFS rejecting a circular dependency and naming the exact loop |
+
+To re-record them, start the app first, then run:
+
+```bash
+node scripts/record_demo.js
+bash scripts/make_videos.sh
+```
+
 ## Course components (Table 2 of the proposal)
 
 | Component | Where | Complexity |

@@ -37,6 +37,13 @@ More screenshots are in [`docs/screenshots/`](docs/screenshots/).
 
 [`docs/videos/campaignflow-trailer.mp4`](docs/videos/campaignflow-trailer.mp4) is a 1:56 product trailer at 1080p and 60 fps, with a voiceover and score. It covers the problem, the five features with animated algorithm explainers, and the measured impact. It is rendered entirely from code; see [`trailer/README.md`](trailer/README.md).
 
+## Usability study kit
+
+[`docs/usability/`](docs/usability/) has everything needed to run the three-person study from the proposal:
+- `protocol.md`: consent script, counterbalanced order, four disruption cards, interpretation questions with an answer key, and an observer checklist.
+- `scenario-A.md` and `scenario-B.md`: printable briefings for two matched scenarios. The app loads Scenario B with `variant=B` on reset.
+- `results.csv` and `summarize.py`: the results sheet, and a script that turns it into a summary table for the report.
+
 ## Demo videos
 
 `docs/videos/campaignflow-demo.mp4` is the full walkthrough (about 2 minutes 50 seconds). It joins these five clips:

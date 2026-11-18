@@ -13,6 +13,8 @@ Target length is **14 min 20 s**, inside the 10–15 minute limit. The slides ar
 
 ## Run sheet
 
+Suggested split (swap freely): **A = Philippe** (story, demo driving, wrap-up), **B = Jacob** (algorithms and results). That’s about 4½ minutes of talking for Philippe and 5 for Jacob, plus the trailer and the shared demo.
+
 | # | Slide | Time | Running | Who |
 |---|---|---|---|---|
 | 1 | Cover | 0:20 | 0:20 | A |
@@ -31,7 +33,7 @@ Target length is **14 min 20 s**, inside the 10–15 minute limit. The slides ar
 | 14 | Limitations & next steps | 0:30 | 14:10 | A |
 | 15 | Close + questions | 0:10 | 14:20 | A |
 
-"A" and "B" are placeholders; decide between you who takes which part. **If you're running long**, shorten slide 6 to one sentence, or skip slide 5 (the demo shows the same flow). Don't rush the demo.
+During the demo, Philippe drives the mouse while Jacob narrates the algorithm behind each step (heap → greedy → DFS). **If you're running long**, shorten slide 6 to one sentence, or skip slide 5 (the demo shows the same flow). Don't rush the demo.
 
 ## Live demo (3:00)
 
@@ -62,3 +64,14 @@ Target length is **14 min 20 s**, inside the 10–15 minute limit. The slides ar
 - **App won't start or the page errors:** play `docs/videos/02-plan-and-compare.mp4` and `05-cycle-detection.mp4` and narrate over them.
 - **Data looks different from this script:** click **Reset demo** in the sidebar and redo steps 1–3. Before the two "Yes" clicks the plan shows *6 tasks*; after them, *7*.
 - **Confetti doesn't show:** keep going. The "Locked in" list proves the commit worked.
+
+## Rehearsal log
+
+Run the whole thing once with a phone stopwatch and write down the running time at each checkpoint. If you're more than 30 seconds over at the demo checkpoint, use the cuts above.
+
+| Checkpoint | Target | Rehearsal 1 | Rehearsal 2 |
+|---|---|---|---|
+| End of slide 4 (why arrival order fails) | 4:20 |  |  |
+| Start of demo (slide 10) | 8:20 |  |  |
+| End of demo | 11:20 |  |  |
+| End of talk (slide 15) | 14:20 |  |  |

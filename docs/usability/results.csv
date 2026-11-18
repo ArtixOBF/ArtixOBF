@@ -1,0 +1,7 @@
+participant,order,scenario,method,setup_min,update_min,corrections,q_correct,q_total,overrides,unwanted_changes,violations,notes
+P1,1,A,manual,,,,,5,,,,
+P1,2,B,campaignflow,,,,,5,,,,
+P2,1,A,campaignflow,,,,,5,,,,
+P2,2,B,manual,,,,,5,,,,
+P3,1,B,manual,,,,,5,,,,
+P3,2,A,campaignflow,,,,,5,,,,

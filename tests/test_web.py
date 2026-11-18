@@ -148,3 +148,22 @@ def test_htmx_confirm_returns_partial(client):
     r = client.post("/staff/S4/confirm", data={"confirmed": "1"},
                     headers={"HX-Request": "true", "HX-Target": "staff-S4"})
     assert b'id="staff-S4"' in r.data and b"<html" not in r.data
+
+
+def test_scenario_b_matches_demo_structure():
+    """The usability study's Scenario B must be exactly as hard as the demo."""
+    a = store.seed_demo(store.empty_state("2026-11-18"))
+    b = store.seed_demo(store.empty_state("2026-11-18"), "B")
+    ra, rb = store.recommend(a), store.recommend(b)
+    shape = lambda r: sorted((x.task_id, x.staff_id, x.start, x.end) for x in r["plan"].assignments)
+    assert shape(ra) == shape(rb)
+    assert {x.task_id for x in ra["plan"].blocked} == {x.task_id for x in rb["plan"].blocked}
+    names_b = " ".join(t["name"] for t in b["tasks"].values()) + " ".join(s["name"] for s in b["staff"].values())
+    for old in ("Kape Manila", "Carlo", "Fix typo", "BuildPH"):
+        assert old not in names_b
+
+
+def test_reset_route_loads_scenario_b(client):
+    client.get("/today")
+    client.post("/reset-demo", data={"variant": "B"})
+    assert b"Habi Textiles" in client.get("/today").data

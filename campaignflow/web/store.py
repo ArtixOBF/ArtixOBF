@@ -496,8 +496,31 @@ def start_day(st: dict, new_date: str) -> None:
 
 
 # ------------------------------------------------------------------ demo data
-def seed_demo(st: dict) -> dict:
-    """Synthetic demo agency (clearly illustrative, not real client data)."""
+# Scenario B for the usability study: the same structure and timings as the
+# demo (so both are equally hard), with every person, client and task renamed.
+SCENARIO_B = {
+    "Bea (writer)": "Mika (writer)", "Carlo (editor)": "Paolo (editor)",
+    "Dani (editor/writer)": "Rina (editor/writer)", "Ely (junior editor)": "Tess (junior editor)",
+    "Sari-Sari Co.": "Lola's Bakeshop", "Kape Manila": "Habi Textiles", "BuildPH": "GreenRide",
+    "Holiday promo video": "Anniversary video", "Brand story": "Founder story",
+    "December posts": "January posts", "Launch article": "Launch explainer",
+    "Fix typo in live ad": "Fix price in live post", "Thumbnail set": "Story cover set",
+    "Resize launch banner": "Resize event banner",
+}
+
+
+def _rename(text: str, mapping: dict) -> str:
+    for old, new in mapping.items():
+        text = text.replace(old, new)
+    return text
+
+
+def seed_demo(st: dict, variant: str = "A") -> dict:
+    """Synthetic demo agency (clearly illustrative, not real client data).
+
+    variant "B" is the usability study's matched scenario: identical structure,
+    different names.
+    """
     today = date.fromisoformat(st["plan_date"])
 
     def at(days: int, hhmm: str) -> str:
@@ -537,5 +560,13 @@ def seed_demo(st: dict) -> dict:
     s["S2"]["exceptions"].append({"start": "15:00", "end": "15:30", "label": "Team huddle"})
     for sid in ("S1", "S2", "S3"):
         s[sid]["confirmed_on"] = st["plan_date"]   # S4 left unconfirmed on purpose
+    if variant == "B":
+        for person in s.values():
+            person["name"] = _rename(person["name"], SCENARIO_B)
+        for camp in st["campaigns"].values():
+            camp["client"] = _rename(camp["client"], SCENARIO_B)
+            camp["name"] = _rename(camp["name"], SCENARIO_B)
+        for task in t.values():
+            task["name"] = _rename(task["name"], SCENARIO_B)
     st["version"] = 0
     return st

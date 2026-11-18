@@ -374,7 +374,8 @@ def day():
 @app.post("/reset-demo")
 def reset_demo():
     def apply(st):
-        fresh = store.seed_demo(store.empty_state())
+        variant = "B" if request.form.get("variant") == "B" else "A"
+        fresh = store.seed_demo(store.empty_state(), variant)
         st.clear()
         st.update(fresh)
     return _mutate(apply, "Demo data restored.", to=url_for("today"))

@@ -1,56 +1,77 @@
 {% extends "base.html" %}
-{% block title %}Intake · CampaignFlow{% endblock %}
+{% from "_icons.html" import icon %}
+{% block title %}Campaigns & team · CampaignFlow{% endblock %}
+{% block heading %}Campaigns &amp; team{% endblock %}
+{% block subheading %}Templates fill in steps, skills, dependencies and effort ranges. Deadlines are inherited from the campaign.{% endblock %}
 {% block content %}
-<div class="intro">
-  <h1>Intake</h1>
-  <p class="muted">Templates create the usual steps, skills, prerequisite links and effort ranges.
-    Deadlines are inherited from the campaign; IDs are generated automatically.</p>
-</div>
-<div class="grid2">
-<section class="panel">
-  <h2>New campaign from template</h2>
-  <form method="post" action="{{ url_for('campaigns_add') }}" class="form-grid">
-    <label>Template
-      <select name="template">{% for k, tpl in TEMPLATES.items() %}<option value="{{ k }}">{{ tpl.label }}</option>{% endfor %}</select></label>
-    <label>Client <input name="client" required placeholder="Client name"></label>
-    <label>Campaign name <input name="name" required placeholder="e.g. Summer launch"></label>
-    <label>Campaign deadline <input name="deadline" type="datetime-local" required></label>
-    <div class="wide"><button class="primary">Create campaign</button></div>
+<div class="layout-split wide-left">
+<div>
+  <form method="post" action="{{ url_for('campaigns_add') }}" class="card form-card">
+    <div class="card-head"><h2>{{ icon('layers', 16) }} New campaign</h2></div>
+    <span class="label">Template</span>
+    <div class="templates">
+      {% for k, tpl in TEMPLATES.items() %}
+      <label class="template">
+        <input type="radio" name="template" value="{{ k }}" {{ 'checked' if loop.first }}>
+        <div class="template-body">
+          <div class="template-title">{{ tpl.label }} <span class="muted">{{ tpl.steps|length }} steps</span></div>
+          <ol class="pipeline">
+            {% for s in tpl.steps %}
+              <li class="{{ 'gate' if s.kind == 'gate' }}" title="{{ s.name }}{% if s.kind == 'gate' %} (external gate){% else %} · {{ s.skill }} · {{ s.effort[0] }}–{{ s.effort[1] }}h{% endif %}">
+                {% if s.kind == 'gate' %}{{ icon('flag', 11) }}{% endif %}{{ s.name }}</li>
+            {% endfor %}
+          </ol>
+        </div>
+        <span class="radio-mark">{{ icon('check', 13) }}</span>
+      </label>
+      {% endfor %}
+    </div>
+    <div class="fields">
+      <div class="field"><label for="c-client">Client</label><input id="c-client" name="client" required placeholder="e.g. Kape Manila"></div>
+      <div class="field"><label for="c-name">Campaign name</label><input id="c-name" name="name" required placeholder="e.g. Summer launch"></div>
+      <div class="field span-2"><label for="c-deadline">Campaign deadline</label><input id="c-deadline" name="deadline" type="datetime-local" required></div>
+    </div>
+    <div class="form-foot"><button class="btn btn-primary">{{ icon('plus', 14) }} Create campaign</button></div>
   </form>
-  <details class="small">
-    <summary>What each template creates</summary>
-    {% for k, tpl in TEMPLATES.items() %}
-      <p><strong>{{ tpl.label }}:</strong>
-      {% for s in tpl.steps %}{{ s.name }}{% if s.kind == 'gate' %} <em>(gate)</em>{% else %} ({{ s.skill }}, {{ s.effort[0] }}–{{ s.effort[1] }}h){% endif %}{{ ' → ' if not loop.last }}{% endfor %}</p>
-    {% endfor %}
+
+  <details class="card form-card collapsible">
+    <summary class="card-head"><h2>{{ icon('plus', 16) }} Add an ad-hoc task or gate</h2>{{ icon('chevron', 16, 'caret') }}</summary>
+    <form method="post" action="{{ url_for('tasks_add') }}">
+      {% set t = none %}
+      {% include "_task_fields.html" %}
+      <div class="form-foot"><button class="btn btn-primary">{{ icon('plus', 14) }} Add</button></div>
+    </form>
   </details>
+</div>
 
-  <h2>Ad-hoc task or gate</h2>
-  <form method="post" action="{{ url_for('tasks_add') }}">
-    {% set t = none %}
-    {% include "_task_fields.html" %}
-    <button class="primary">Add</button>
-  </form>
-</section>
+<div id="team">
+  <div class="card flush">
+    <div class="card-head pad"><h2>{{ icon('users', 16) }} Team</h2><span class="count">{{ st.staff|length }}</span></div>
+    <ul class="team-list">
+    {% for s in st.staff.values() %}
+      <li>
+        <span class="avatar" style="--h: {{ s.name|hue }}">{{ s.name|initials }}</span>
+        <div class="person-meta"><div class="person-name">{{ s.name }}</div>
+          <div class="person-sub">{{ s.window[0] }}–{{ s.window[1] }} · {% for k in s.skills %}<span class="tag">{{ k }}</span>{% endfor %}</div></div>
+        <form method="post" action="{{ url_for('staff_delete', sid=s.id) }}" hx-confirm="Remove {{ s.name }}? Their commitments are released.">
+          <button class="icon-btn" title="Remove {{ s.name }}">{{ icon('trash', 15) }}</button></form>
+      </li>
+    {% else %}<li class="muted">No team members yet.</li>{% endfor %}
+    </ul>
+  </div>
 
-<section class="panel">
-  <h2>Staff</h2>
-  <table><thead><tr><th>ID</th><th>Name</th><th>Skills</th><th>Hours</th><th></th></tr></thead><tbody>
-  {% for s in st.staff.values() %}
-    <tr><td class="mono">{{ s.id }}</td><td>{{ s.name }}</td><td>{{ s.skills|join(', ') }}</td>
-      <td>{{ s.window[0] }}–{{ s.window[1] }}</td>
-      <td><form method="post" action="{{ url_for('staff_delete', sid=s.id) }}" class="inline"
-                hx-confirm="Remove {{ s.name }}? Their commitments are released."><button class="link">remove</button></form></td></tr>
-  {% endfor %}</tbody></table>
-  <h3>Add staff member</h3>
-  <form method="post" action="{{ url_for('staff_add') }}" class="form-grid">
-    <label>Name <input name="name" required></label>
-    <label>Skills (comma separated) <input name="skills" required placeholder="editing, writing"></label>
-    <label>Start <input name="start" value="09:00" pattern="\d{1,2}:\d{2}"></label>
-    <label>End <input name="end" value="18:00" pattern="\d{1,2}:\d{2}"></label>
-    <label class="check"><input type="checkbox" name="lunch" value="1" checked> 12:00–13:00 lunch</label>
-    <div class="wide"><button class="primary">Add staff</button></div>
+  <form method="post" action="{{ url_for('staff_add') }}" class="card form-card">
+    <div class="card-head"><h2>{{ icon('plus', 16) }} Add team member</h2></div>
+    <div class="fields">
+      <div class="field span-2"><label for="s-name">Name</label><input id="s-name" name="name" required placeholder="e.g. Ana (editor)"></div>
+      <div class="field span-2"><label for="s-skills">Skills</label><input id="s-skills" name="skills" required placeholder="editing, writing">
+        <small class="hint">Comma separated</small></div>
+      <div class="field"><label for="s-start">Starts</label><input id="s-start" name="start" type="time" value="09:00"></div>
+      <div class="field"><label for="s-end">Ends</label><input id="s-end" name="end" type="time" value="18:00"></div>
+      <label class="check span-2"><input type="checkbox" name="lunch" value="1" checked> Block 12:00–13:00 for lunch</label>
+    </div>
+    <div class="form-foot"><button class="btn btn-primary">{{ icon('plus', 14) }} Add member</button></div>
   </form>
-</section>
+</div>
 </div>
 {% endblock %}

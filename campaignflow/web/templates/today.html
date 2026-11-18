@@ -1,79 +1,198 @@
 {% extends "base.html" %}
-{% block title %}Daily review · CampaignFlow{% endblock %}
-{% block content %}
-<div class="intro">
-  <h1>Daily review</h1>
-  <p class="muted">Update only what changed: mark finished work, confirm external gates,
-    and check each person's availability. Then open <a href="{{ url_for('plan') }}">Recommendations</a>.</p>
-</div>
+{% from "_icons.html" import icon %}
+{% block title %}Today · CampaignFlow{% endblock %}
+{% block heading %}Today{% endblock %}
+{% block subheading %}{{ st.plan_date|longdate }} · Daily review: update what changed, then plan.{% endblock %}
+{% block actions %}
+  <a href="{{ url_for('intake') }}" class="btn">{{ icon('plus') }} New campaign</a>
+  <a href="{{ url_for('plan') }}" class="btn btn-primary">{{ icon('sparkle') }} Plan the day {{ icon('arrow', 14) }}</a>
+{% endblock %}
 
+{% macro badge(state) -%}
+  {%- set B = {
+    'done': ('success', 'Done'), 'committed': ('lock', 'Locked'), 'ready': ('info', 'Ready'),
+    'waiting': ('neutral', 'Waiting'), 'needs-info': ('warning', 'Needs estimate'),
+    'gate-ready': ('warning', 'Ready to confirm'), 'gate-upcoming': ('neutral', 'Upcoming'),
+  } -%}
+  <span class="badge badge-{{ B[state][0] }}"><i class="dot"></i>{{ B[state][1] }}</span>
+{%- endmacro %}
+
+{% block content %}
 {% if errors %}
-<div class="panel error-panel">
-  <h3>Fix before planning</h3>
-  <ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
+<div class="callout danger">
+  {{ icon('alert', 18) }}
+  <div><strong>Fix these before planning</strong>
+    <ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul></div>
 </div>
 {% endif %}
 
-<div class="grid2">
-<section>
-  <form method="post" action="{{ url_for('tasks_bulk') }}" id="bulk">
-    <div class="toolbar">
-      <strong>Selected:</strong>
-      <button name="action" value="done">Mark done</button>
-      <button name="action" value="confirm">Confirm gate</button>
-      <button name="action" value="urgent">Urgent</button>
-      <button name="action" value="normal">Normal</button>
-      <button name="action" value="reopen" class="ghost">Reopen</button>
+<section class="kpis">
+  <div class="kpi">
+    <div class="kpi-label">{{ icon('bolt', 14) }} Ready to schedule</div>
+    <div class="kpi-value">{{ ready_tasks }}</div>
+    <div class="kpi-foot">production tasks with prerequisites met</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">{{ icon('flag', 14) }} External gates open</div>
+    <div class="kpi-value">{{ gate_waits }}</div>
+    <div class="kpi-foot">{{ att.gates|length }} ready for your confirmation</div>
+  </div>
+  <div class="kpi {{ 'kpi-alert' if due_soon }}">
+    <div class="kpi-label">{{ icon('clock', 14) }} Due today or overdue</div>
+    <div class="kpi-value">{{ due_soon }}</div>
+    <div class="kpi-foot">unfinished production tasks</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">{{ icon('users', 14) }} Team availability</div>
+    <div class="kpi-value">{{ confirmed }}<span class="kpi-of">/{{ st.staff|length }}</span></div>
+    <div class="meter"><span style="width: {{ (confirmed / (st.staff|length or 1) * 100)|round }}%"></span></div>
+  </div>
+</section>
+
+<div class="layout-rail">
+<section class="work">
+  <div class="toolbar">
+    <label class="search">{{ icon('search', 15) }}
+      <input type="search" placeholder="Search tasks, clients, IDs…" data-search aria-label="Search tasks"><kbd>/</kbd></label>
+    <div class="segmented" role="tablist" aria-label="Filter tasks">
+      <button type="button" data-filter="all" class="on">All <span>{{ states|length }}</span></button>
+      <button type="button" data-filter="ready">Ready <span>{{ counts.ready }}</span></button>
+      <button type="button" data-filter="waiting">Waiting <span>{{ counts.waiting }}</span></button>
+      <button type="button" data-filter="committed">Locked <span>{{ counts.committed }}</span></button>
+      <button type="button" data-filter="done">Done <span>{{ counts.done }}</span></button>
     </div>
+  </div>
+
+  <form method="post" action="{{ url_for('tasks_bulk') }}" id="bulk">
     {% for cid, items in groups.items() %}
       {% set c = st.campaigns.get(cid) %}
-      <div class="campaign">
-        <h3>{% if c %}{{ c.client }} — {{ c.name }} <span class="muted">({{ cid }}, due {{ c.deadline|due }})</span>
-            {% else %}Ad-hoc tasks{% endif %}</h3>
-        <table>
-          <thead><tr><th></th><th>ID</th><th>Step</th><th>Skill</th><th>Effort (h)</th><th>Due</th><th>Status</th><th></th></tr></thead>
+      {% set done_n = items|selectattr('status', 'equalto', 'done')|list|length %}
+      <details class="group" open data-group-box>
+        <summary class="group-head">
+          {{ icon('chevron', 16, 'caret') }}
+          <span class="avatar sq" style="--h: {{ (c.client if c else 'Ad hoc')|hue }}">{{ (c.client if c else 'Ad hoc')|initials }}</span>
+          <div class="group-title">
+            <strong>{{ c.name if c else 'Ad-hoc tasks' }}</strong>
+            <span class="muted">{{ c.client if c else 'Unassigned requests' }}{% if c %} · {{ cid }}{% endif %}</span>
+          </div>
+          {% if c %}<span class="due-chip {{ c.deadline|due_class }}">{{ icon('calendar', 13) }} Due {{ c.deadline|due }}</span>{% endif %}
+          <div class="progress" title="{{ done_n }} of {{ items|length }} steps complete">
+            <div class="meter sm"><span style="width: {{ (done_n / items|length * 100)|round }}%"></span></div>
+            <span class="muted tnum">{{ done_n }}/{{ items|length }}</span>
+          </div>
+        </summary>
+        <table class="table">
+          <thead><tr>
+            <th class="col-check"><input type="checkbox" data-select-group="{{ cid or 'adhoc' }}" aria-label="Select all in group"></th>
+            <th>Step</th><th>Owner skill</th><th class="num">Effort</th><th>Due</th><th>Status</th><th class="col-actions"></th>
+          </tr></thead>
           <tbody>
           {% for t in items %}
+            {% set state = states[t.id] %}
             {% set gate = t.kind == GATE %}
-            <tr class="{{ 'gate' if gate }} {{ 'done' if t.status == 'done' }}">
-              <td><input type="checkbox" name="ids" value="{{ t.id }}" aria-label="Select {{ t.id }}"></td>
-              <td class="mono">{{ t.id }}</td>
-              <td>{{ t.name }}
-                {% if t.urgency == 'urgent' %}<span class="pill urgent">urgent</span>{% endif %}
-                {% if gate %}<span class="pill ext">external gate</span>{% endif %}
-                {% if waiting[t.id] and t.status != 'done' %}<div class="muted small">after: {{ waiting[t.id]|join(', ') }}</div>{% endif %}
-              </td>
-              <td>{{ t.skill or '—' }}</td>
-              <td>{% if gate %}—{% else %}{{ t.effort_min_h|hours }}–{{ t.effort_max_h|hours }}{% endif %}</td>
-              <td>{{ t.deadline|due }}</td>
+            <tr data-state="{{ state }}" class="{{ 'row-done' if state == 'done' }}">
+              <td class="col-check"><input type="checkbox" name="ids" value="{{ t.id }}" data-group="{{ cid or 'adhoc' }}" aria-label="Select {{ t.name }}"></td>
               <td>
-                {% if t.status == 'done' %}<span class="pill ok">{{ t.outcome or ('confirmed' if gate else 'done') }}</span>
-                {% elif t.id in committed %}{% set c2 = committed[t.id] %}
-                  <span class="pill lock">🔒 {{ staff_names.get(c2.staff_id, c2.staff_id) }} {{ c2.start|hhmm }}–{{ c2.end|hhmm }}</span>
-                {% elif gate %}<span class="pill wait">awaiting</span>
-                {% else %}<span class="pill">pending</span>{% endif %}
+                <div class="cell-title">
+                  {% if gate %}<span class="kind-icon gate" title="External gate">{{ icon('flag', 14) }}</span>{% endif %}
+                  <span>{{ t.name }}</span>
+                  {% if t.urgency == 'urgent' %}<span class="badge badge-danger sm">{{ icon('bolt', 11) }} Urgent</span>{% endif %}
+                </div>
+                <div class="cell-sub"><span class="id">{{ t.id }}</span>
+                  {% if waiting[t.id] and state != 'done' %} · after {{ waiting[t.id]|join(', ') }}{% endif %}
+                  {% if t.outcome %} · {{ t.outcome }}{% endif %}</div>
               </td>
-              <td class="actions">
-                {% if gate and t.review and t.status != 'done' %}
-                  <button formaction="{{ url_for('tasks_changes', tid=t.id) }}" name="x" value="1" class="link">changes requested</button>
-                {% endif %}
-                <a href="{{ url_for('edit_task', tid=t.id) }}">edit</a>
+              <td>{% if t.skill %}<span class="tag">{{ t.skill }}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+              <td class="num tnum">{% if gate %}<span class="muted">—</span>{% elif t.effort_max_h in (none, '') %}<span class="warn-text">?</span>{% else %}{{ t.effort_min_h|hours }}–{{ t.effort_max_h|hours }}h{% endif %}</td>
+              <td class="due {{ t.deadline|due_class if state != 'done' }}">{{ t.deadline|due }}</td>
+              <td>
+                {{ badge(state) }}
+                {% if state == 'committed' %}{% set c2 = committed[t.id] %}
+                  <div class="cell-sub">{{ staff_names.get(c2.staff_id, c2.staff_id) }} · {{ c2.start|hhmm }}–{{ c2.end|hhmm }}</div>{% endif %}
+              </td>
+              <td class="col-actions">
+                <div class="row-actions">
+                  {% if gate and t.review and t.status != 'done' %}
+                    <button formaction="{{ url_for('tasks_changes', tid=t.id) }}" class="icon-btn" title="Client requested changes: add a revision round">{{ icon('revise', 15) }}</button>
+                  {% endif %}
+                  <a href="{{ url_for('edit_task', tid=t.id) }}" class="icon-btn" title="Edit">{{ icon('edit', 15) }}</a>
+                </div>
               </td>
             </tr>
           {% endfor %}
           </tbody>
         </table>
-      </div>
+        <div class="group-empty" hidden>No tasks match this filter.</div>
+      </details>
     {% else %}
-      <p class="muted">No tasks yet. Create a campaign on the <a href="{{ url_for('intake') }}">Intake</a> page.</p>
+      <div class="empty">
+        <div class="empty-art">{{ icon('layers', 28) }}</div>
+        <h3>No campaigns yet</h3>
+        <p>Start from a template: steps, skills, dependencies and effort ranges are filled in for you.</p>
+        <a class="btn btn-primary" href="{{ url_for('intake') }}">{{ icon('plus') }} Create a campaign</a>
+      </div>
     {% endfor %}
+    <div class="empty filter-empty" hidden>
+      <div class="empty-art">{{ icon('search', 28) }}</div><h3>Nothing matches</h3><p>Try another filter or search term.</p>
+    </div>
+
+    <div class="bulkbar" id="bulkbar" role="region" aria-label="Bulk actions">
+      <span class="bulk-count"><b data-count>0</b> selected</span>
+      <span class="sep"></span>
+      <button name="action" value="done" class="btn btn-sm btn-dark">{{ icon('check', 14) }} Mark done</button>
+      <button name="action" value="confirm" class="btn btn-sm btn-dark">{{ icon('flag', 14) }} Confirm gate</button>
+      <button name="action" value="urgent" class="btn btn-sm btn-dark">{{ icon('bolt', 14) }} Urgent</button>
+      <button name="action" value="normal" class="btn btn-sm btn-dark">Normal</button>
+      <button name="action" value="reopen" class="btn btn-sm btn-dark">Reopen</button>
+      <button type="button" class="icon-btn dark" data-clear title="Clear selection (Esc)">{{ icon('x', 15) }}</button>
+    </div>
   </form>
 </section>
 
-<aside>
-  <h2>Staff availability · {{ st.plan_date }}</h2>
-  <p class="muted small">Work is only proposed for people whose availability is confirmed for this day.</p>
-  {% for s in st.staff.values() %}{% include "_staff_row.html" %}{% endfor %}
+<aside class="rail">
+  <div class="card">
+    <div class="card-head">
+      <h2>{{ icon('inbox', 16) }} Needs your attention</h2>
+      {% if att.count %}<span class="count attn">{{ att.count }}</span>{% endif %}
+    </div>
+    {% if att.count %}
+    <ul class="inbox">
+      {% for t in att.gates %}
+        <li>
+          <span class="inbox-icon warn">{{ icon('flag', 14) }}</span>
+          <div class="inbox-body"><div>{{ t.name }}</div><div class="cell-sub">External gate · prerequisites done. Confirm when it happens.</div></div>
+          <form method="post" action="{{ url_for('tasks_bulk') }}"><input type="hidden" name="ids" value="{{ t.id }}">
+            <button name="action" value="confirm" class="btn btn-sm">Confirm</button></form>
+        </li>
+      {% endfor %}
+      {% for s in att.staff %}
+        <li>
+          <span class="inbox-icon">{{ icon('users', 14) }}</span>
+          <div class="inbox-body"><div>{{ s.name }}</div><div class="cell-sub">Availability not confirmed today; no work will be proposed.</div></div>
+          <form method="post" action="{{ url_for('staff_confirm', sid=s.id) }}"><input type="hidden" name="confirmed" value="1">
+            <button class="btn btn-sm">Confirm</button></form>
+        </li>
+      {% endfor %}
+      {% for t in att.info %}
+        <li>
+          <span class="inbox-icon">{{ icon('info', 14) }}</span>
+          <div class="inbox-body"><div>{{ t.name }}</div><div class="cell-sub">Missing effort estimate; held back until set.</div></div>
+          <a class="btn btn-sm" href="{{ url_for('edit_task', tid=t.id) }}">Estimate</a>
+        </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+      <div class="all-clear">{{ icon('check', 18) }} All clear. You're ready to plan.</div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2>{{ icon('users', 16) }} Team today</h2><span class="muted tnum">{{ confirmed }}/{{ st.staff|length }} confirmed</span></div>
+    <div class="people">
+      {% for s in st.staff.values() %}{% include "_staff_row.html" %}{% else %}
+        <p class="muted">No team members yet. <a href="{{ url_for('intake') }}#team">Add someone</a>.</p>{% endfor %}
+    </div>
+  </div>
 </aside>
 </div>
 {% endblock %}

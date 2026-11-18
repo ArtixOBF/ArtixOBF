@@ -1,34 +1,43 @@
+{% from "_icons.html" import icon %}
 {% set ok = s.confirmed_on == st.plan_date %}
-<div class="staff {{ 'confirmed' if ok else 'unconfirmed' }}" id="staff-{{ s.id }}">
-  <div class="staff-head">
-    <div>
-      <strong>{{ s.name }}</strong>
-      <span class="muted">{{ s.id }} · {{ s.window[0] }}–{{ s.window[1] }}</span>
-      <div>{% for k in s.skills %}<span class="chip">{{ k }}</span>{% endfor %}</div>
+<div class="person {{ 'is-confirmed' if ok else 'is-unconfirmed' }}" id="staff-{{ s.id }}">
+  <div class="person-head">
+    <span class="avatar" style="--h: {{ s.name|hue }}">{{ s.name|initials }}</span>
+    <div class="person-meta">
+      <div class="person-name">{{ s.name }}</div>
+      <div class="person-sub">{{ s.window[0] }}–{{ s.window[1] }} · {% for k in s.skills %}<span class="tag">{{ k }}</span>{% endfor %}</div>
     </div>
     <form method="post" action="{{ url_for('staff_confirm', sid=s.id) }}"
           hx-post="{{ url_for('staff_confirm', sid=s.id) }}" hx-target="#staff-{{ s.id }}" hx-swap="outerHTML">
       <input type="hidden" name="confirmed" value="{{ '0' if ok else '1' }}">
-      <button class="{{ 'ghost' if ok else 'primary' }}">{{ '✓ Confirmed' if ok else 'Confirm today' }}</button>
+      {% if ok %}
+        <button class="status-toggle on" title="Availability confirmed — click to undo">{{ icon('check', 14) }} Confirmed</button>
+      {% else %}
+        <button class="btn btn-sm btn-primary">Confirm today</button>
+      {% endif %}
     </form>
   </div>
-  <ul class="exc">
-    {% for e in s.recurring %}<li class="muted">{{ e.start }}–{{ e.end }} {{ e.label }} (recurring)</li>{% endfor %}
+  {% if s.recurring or s.exceptions %}
+  <div class="timeoff">
+    {% for e in s.recurring %}<span class="time-pill muted">{{ e.start }}–{{ e.end }} {{ e.label }}</span>{% endfor %}
     {% for e in s.exceptions %}
-      <li>{{ e.start }}–{{ e.end }} {{ e.label }}
+      <span class="time-pill">{{ icon('clock', 12) }} {{ e.start }}–{{ e.end }} {{ e.label }}
         <form method="post" class="inline" action="{{ url_for('staff_exception_delete', sid=s.id, i=loop.index0) }}">
-          <button class="link" title="Remove">✕</button></form></li>
+          <button class="pill-x" aria-label="Remove {{ e.label }}">{{ icon('x', 11) }}</button></form></span>
     {% endfor %}
-  </ul>
-  <details>
-    <summary>Add meeting / absence</summary>
-    <form method="post" action="{{ url_for('staff_exception', sid=s.id) }}" class="row">
-      <input name="start" placeholder="14:00" size="5" required pattern="\d{1,2}:\d{2}">
-      <input name="end" placeholder="15:00" size="5" required pattern="\d{1,2}:\d{2}">
-      <input name="label" placeholder="Meeting" size="10">
-      <button>Add</button>
+  </div>
+  {% endif %}
+  <details class="disclose">
+    <summary>{{ icon('plus', 13) }} Add meeting or time off</summary>
+    <form method="post" action="{{ url_for('staff_exception', sid=s.id) }}" class="timeoff-form">
+      <input name="start" type="time" required aria-label="From">
+      <span class="muted">to</span>
+      <input name="end" type="time" required aria-label="Until">
+      <input name="label" placeholder="Meeting" aria-label="Label">
+      <button class="btn btn-sm">Add</button>
     </form>
-    <form method="post" action="{{ url_for('staff_absent', sid=s.id) }}" class="inline">
-      <button class="link">Absent all day</button></form>
+    <form method="post" action="{{ url_for('staff_absent', sid=s.id) }}">
+      <button class="link-btn">Mark absent for the whole day</button>
+    </form>
   </details>
 </div>

@@ -521,6 +521,14 @@ def seed_demo(st: dict) -> dict:
     add_task(st, {"name": "Fix typo in live ad – Sari-Sari Co.", "kind": TASK,
                   "skill": "editing", "effort_min_h": 0.25, "effort_max_h": 0.5,
                   "deadline": at(0, "11:00"), "urgency": URGENT, "campaign": "C1"})
+    # Two ad-hoc edits: the earlier request is less urgent than the later one,
+    # which is where a deadline-aware order and an entry-order queue diverge.
+    add_task(st, {"name": "Thumbnail set – Kape Manila", "kind": TASK, "skill": "editing",
+                  "effort_min_h": 1.5, "effort_max_h": 2, "deadline": at(1, "17:00"),
+                  "campaign": "C2"})
+    add_task(st, {"name": "Resize launch banner – BuildPH", "kind": TASK, "skill": "editing",
+                  "effort_min_h": 1, "effort_max_h": 1.5, "deadline": at(0, "12:00"),
+                  "campaign": "C4"})
     s = st["staff"]
     s["S1"]["exceptions"].append({"start": "10:00", "end": "11:00", "label": "Client call"})
     s["S2"]["exceptions"].append({"start": "15:00", "end": "15:30", "label": "Team huddle"})

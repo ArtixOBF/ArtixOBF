@@ -1,30 +1,68 @@
-{# Shared task form fields. `t` may be undefined for a new task. #}
-<div class="form-grid">
-  <label>Name <input name="name" required value="{{ t.name if t else '' }}"></label>
-  <label>Kind
-    <select name="kind">
-      <option value="task" {{ 'selected' if not t or t.kind == 'task' }}>Production task (staff)</option>
-      <option value="gate" {{ 'selected' if t and t.kind == 'gate' }}>External gate (filming, approval)</option>
-    </select></label>
-  <label>Required skill <input name="skill" list="skills" value="{{ t.skill or '' if t else '' }}" placeholder="editing"></label>
-  <label>Effort min (h) <input name="effort_min_h" type="number" step="0.25" min="0" value="{{ t.effort_min_h if t and t.effort_min_h is not none else '' }}"></label>
-  <label>Effort max (h) <input name="effort_max_h" type="number" step="0.25" min="0.25" value="{{ t.effort_max_h if t and t.effort_max_h is not none else '' }}"></label>
-  <label>Deadline <input name="deadline" type="datetime-local" value="{{ t.deadline or '' if t else '' }}"></label>
-  <label>Urgency
-    <select name="urgency">
-      <option value="normal">normal</option>
-      <option value="urgent" {{ 'selected' if t and t.urgency == 'urgent' }}>urgent</option>
-    </select></label>
-  <label>Campaign
-    <select name="campaign"><option value="">(ad-hoc)</option>
+{% from "_icons.html" import icon %}
+{# Shared task form fields. `t` may be none for a new task. #}
+<div class="fields">
+  <div class="field span-2">
+    <label for="f-name">Name</label>
+    <input id="f-name" name="name" required value="{{ t.name if t else '' }}" placeholder="e.g. Edit teaser cut">
+  </div>
+
+  <div class="field span-2">
+    <span class="label">Type</span>
+    <div class="choice-row">
+      <label class="choice"><input type="radio" name="kind" value="task" {{ 'checked' if not t or t.kind == 'task' }}>
+        <span>{{ icon('edit', 15) }} <b>Production task</b><small>Done by one team member</small></span></label>
+      <label class="choice"><input type="radio" name="kind" value="gate" {{ 'checked' if t and t.kind == 'gate' }}>
+        <span>{{ icon('flag', 15) }} <b>External gate</b><small>Filming, client approval…</small></span></label>
+    </div>
+  </div>
+
+  <div class="field task-only">
+    <label for="f-skill">Required skill</label>
+    <input id="f-skill" name="skill" list="skills" value="{{ (t.skill or '') if t else '' }}" placeholder="editing">
+  </div>
+  <div class="field task-only">
+    <span class="label">Effort range (hours)</span>
+    <div class="range-inputs">
+      <input name="effort_min_h" type="number" step="0.25" min="0" aria-label="Minimum hours" placeholder="min" value="{{ t.effort_min_h if t and t.effort_min_h is not none else '' }}">
+      <span class="muted">–</span>
+      <input name="effort_max_h" type="number" step="0.25" min="0.25" aria-label="Maximum hours" placeholder="max" value="{{ t.effort_max_h if t and t.effort_max_h is not none else '' }}">
+    </div>
+    <small class="hint">Leave blank if unknown. The task waits until an estimate is set.</small>
+  </div>
+
+  <div class="field">
+    <label for="f-deadline">Deadline</label>
+    <input id="f-deadline" name="deadline" type="datetime-local" value="{{ (t.deadline or '') if t else '' }}">
+  </div>
+  <div class="field">
+    <span class="label">Urgency</span>
+    <div class="segmented full">
+      <label class="{{ 'on' if not t or t.urgency != 'urgent' }}"><input type="radio" name="urgency" value="normal" {{ 'checked' if not t or t.urgency != 'urgent' }}> Normal</label>
+      <label class="{{ 'on' if t and t.urgency == 'urgent' }}"><input type="radio" name="urgency" value="urgent" {{ 'checked' if t and t.urgency == 'urgent' }}> {{ icon('bolt', 13) }} Urgent</label>
+    </div>
+  </div>
+
+  <div class="field span-2">
+    <label for="f-campaign">Campaign</label>
+    <select id="f-campaign" name="campaign"><option value="">Ad-hoc (no campaign)</option>
       {% for c in st.campaigns.values() %}<option value="{{ c.id }}" {{ 'selected' if t and t.campaign == c.id }}>{{ c.client }} — {{ c.name }}</option>{% endfor %}
-    </select></label>
-  <label class="wide">Prerequisites (select by name; Ctrl/Cmd-click for several)
-    <select name="prereqs" multiple size="6">
-      {% for o in st.tasks.values() if not t or o.id != t.id %}
-        <option value="{{ o.id }}" {{ 'selected' if t and o.id in t.prereqs }}>{{ o.name }} ({{ o.id }}{{ ', gate' if o.kind == 'gate' }})</option>
-      {% endfor %}
-    </select></label>
+    </select>
+  </div>
+
+  <div class="field span-2">
+    <span class="label">Prerequisites <small class="hint inline">must finish before this can start</small></span>
+    <div class="picker">
+      <label class="search sm">{{ icon('search', 14) }}<input type="search" placeholder="Filter by name…" data-picker-filter aria-label="Filter prerequisites"></label>
+      <div class="picker-list">
+        {% for o in st.tasks.values() if not t or o.id != t.id %}
+          <label class="pick" data-pick-text="{{ o.name|lower }} {{ o.id|lower }}">
+            <input type="checkbox" name="prereqs" value="{{ o.id }}" {{ 'checked' if t and o.id in t.prereqs }}>
+            {% if o.kind == 'gate' %}{{ icon('flag', 13) }}{% endif %}
+            <span>{{ o.name }}</span><span class="id">{{ o.id }}</span>
+          </label>
+        {% else %}<p class="muted small">No other tasks yet.</p>{% endfor %}
+      </div>
+    </div>
+  </div>
 </div>
 <datalist id="skills"><option value="writing"><option value="editing"></datalist>
-<p class="muted small">Leave effort blank if unknown: the task will be held back until an estimate is confirmed.</p>

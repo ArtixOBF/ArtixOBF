@@ -21,6 +21,17 @@ python -m campaignflow.bench.run        # benchmarks -> docs/results/
 The first launch seeds a **synthetic** demo agency into `data/state.json`
 (git-ignored). Use "reset demo" in the footer to restore it.
 
+![Plan page](docs/screenshots/plan.png)
+
+## Interface
+
+- **Today**: a "needs your attention" inbox (gates ready to confirm, unconfirmed staff, missing estimates), headline numbers, and campaign groups with progress bars. It also has filter chips, instant search, and a bulk-action bar for checked rows.
+- **Plan**: a Gantt timeline per person, the reason each skipped task wasn't scheduled, and an insight card comparing the deadline-first rule with the entry-order baseline. You can accept proposals and lock them as commitments.
+- **Campaigns & team**: template cards that show each campaign's steps, a team roster, and a task editor with a searchable prerequisite picker.
+- Dark mode, mobile layout, toasts, a loading bar, and keyboard shortcuts (`1` `2` `3` to switch pages, `/` to search, `Esc` to clear, `?` for help). The app has no CDN dependency at runtime.
+
+More screenshots are in [`docs/screenshots/`](docs/screenshots/).
+
 ## Course components (Table 2 of the proposal)
 
 | Component | Where | Complexity |

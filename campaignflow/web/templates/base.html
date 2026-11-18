@@ -1,37 +1,99 @@
-<!doctype html>
+{% from "_icons.html" import icon %}<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}CampaignFlow{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%235b5bd6'/%3E%3Cpath d='M9 11h9M13 16h10M11 21h7' stroke='white' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E">
   <script src="{{ url_for('static', filename='htmx-2.0.4.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
 </head>
 <body hx-boost="true">
-  <header class="top">
-    <div class="brand">Campaign<span>Flow</span></div>
-    <nav>
-      {% set ep = request.endpoint %}
-      <a href="{{ url_for('today') }}" class="{{ 'on' if ep == 'today' }}">1 · Daily review</a>
-      <a href="{{ url_for('plan') }}" class="{{ 'on' if ep == 'plan' }}">2 · Recommendations</a>
-      <a href="{{ url_for('intake') }}" class="{{ 'on' if ep == 'intake' }}">Intake</a>
+<div class="loading-bar" aria-hidden="true"></div>
+<div class="shell">
+  <aside class="sidebar">
+    <a class="logo" href="{{ url_for('today') }}">
+      <span class="logo-mark"><svg viewBox="0 0 32 32" width="22" height="22"><rect width="32" height="32" rx="8" fill="currentColor"/><path d="M9 11h9M13 16h10M11 21h7" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg></span>
+      <span>CampaignFlow</span>
+    </a>
+
+    <div class="workspace">
+      <span class="ws-avatar">DA</span>
+      <div><div class="ws-name">Demo Agency</div><div class="ws-plan">Production workspace</div></div>
+    </div>
+
+    {% set ep = request.endpoint %}
+    <nav class="nav" aria-label="Main">
+      <div class="nav-label">Workflow</div>
+      <a href="{{ url_for('today') }}" class="{{ 'active' if ep == 'today' }}">
+        {{ icon('today') }}<span>Today</span>
+        {% if nav_attention %}<span class="count attn" title="Items need attention">{{ nav_attention }}</span>{% endif %}
+        <kbd>1</kbd></a>
+      <a href="{{ url_for('plan') }}" class="{{ 'active' if ep == 'plan' }}">
+        {{ icon('plan') }}<span>Plan</span>
+        {% if nav_commitments %}<span class="count" title="Locked commitments today">{{ nav_commitments }}</span>{% endif %}
+        <kbd>2</kbd></a>
+      <a href="{{ url_for('intake') }}" class="{{ 'active' if ep in ('intake', 'edit_task') }}">
+        {{ icon('layers') }}<span>Campaigns &amp; team</span><kbd>3</kbd></a>
     </nav>
-    <form class="day" method="post" action="{{ url_for('day') }}">
-      <label>Planning day
-        <input type="date" name="date" value="{{ st.plan_date }}" onchange="this.form.requestSubmit()">
-      </label>
+
+    <form class="dayswitch" method="post" action="{{ url_for('day') }}">
+      <label for="plan-date" class="nav-label">Planning day</label>
+      <div class="date-input">{{ icon('calendar', 15) }}
+        <input id="plan-date" type="date" name="date" value="{{ st.plan_date }}" onchange="this.form.requestSubmit()"></div>
     </form>
-  </header>
-  <main id="main">
-    {% with msgs = get_flashed_messages(with_categories=true) %}
-      {% for cat, m in msgs %}<div class="flash {{ cat }}">{{ m }}</div>{% endfor %}
-    {% endwith %}
-    {% for n in st.notices %}<div class="flash warn">{{ n }}</div>{% endfor %}
-    {% block content %}{% endblock %}
-  </main>
-  <footer>Synthetic demo data · MSYS 30 prototype ·
-    <form method="post" action="{{ url_for('reset_demo') }}" class="inline"
-          hx-confirm="Replace all data with the demo agency?"><button class="link">reset demo</button></form>
-  </footer>
+
+    <div class="sidebar-foot">
+      <button type="button" class="ghost-btn" data-shortcuts>{{ icon('keyboard', 15) }} Shortcuts <kbd>?</kbd></button>
+      <form method="post" action="{{ url_for('reset_demo') }}" hx-confirm="Replace all data with the demo agency?">
+        <button class="ghost-btn">{{ icon('revise', 15) }} Reset demo data</button>
+      </form>
+      <p class="fine">Synthetic demo data · MSYS 30</p>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="page-head">
+      <div>
+        {% block crumbs %}{% endblock %}
+        <h1>{% block heading %}{% endblock %}</h1>
+        <p class="sub">{% block subheading %}{% endblock %}</p>
+      </div>
+      <div class="head-actions">{% block actions %}{% endblock %}</div>
+    </header>
+    <main id="main">
+      {% for n in st.notices %}
+        <div class="callout warn">{{ icon('info') }}<div>{{ n }}</div></div>
+      {% endfor %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+
+<div class="toasts" aria-live="polite">
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% for cat, m in msgs %}
+      <div class="toast {{ cat }}" role="status">
+        {{ icon('check' if cat == 'ok' else 'alert') }}<span>{{ m }}</span>
+        <button type="button" class="toast-x" aria-label="Dismiss">{{ icon('x', 14) }}</button>
+      </div>
+    {% endfor %}
+  {% endwith %}
+</div>
+
+<dialog class="shortcuts" id="shortcuts">
+  <h3>Keyboard shortcuts</h3>
+  <dl>
+    <dt><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></dt><dd>Today · Plan · Campaigns &amp; team</dd>
+    <dt><kbd>/</kbd></dt><dd>Search tasks</dd>
+    <dt><kbd>Esc</kbd></dt><dd>Clear selection / close</dd>
+    <dt><kbd>?</kbd></dt><dd>Show this panel</dd>
+  </dl>
+  <form method="dialog"><button class="btn">Close</button></form>
+</dialog>
 </body>
 </html>

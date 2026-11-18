@@ -59,6 +59,15 @@ def _hhmm(m):
     return hhmm(m)
 
 
+@app.template_filter("relday")
+def _relday(minutes):
+    """Engine minutes -> 'Today 11:00', 'Tomorrow 12:00', 'Fri 20 Nov 17:00'."""
+    if minutes is None:
+        return "—"
+    st = _state()
+    return _due(store.minutes_to_iso(st, minutes))
+
+
 @app.template_filter("hours")
 def _hours(h):
     if h is None or h == "":
@@ -82,9 +91,64 @@ def _due(iso):
     return f"{dt:%a %d %b %H:%M}"
 
 
+@app.template_filter("due_class")
+def _due_class(iso):
+    """'overdue' | 'today' | '' for colouring deadlines."""
+    if not iso:
+        return ""
+    st = _state()
+    days = (datetime.fromisoformat(iso).date() - date.fromisoformat(st["plan_date"])).days
+    return "overdue" if days < 0 else "today" if days == 0 else ""
+
+
+@app.template_filter("initials")
+def _initials(name):
+    words = [w for w in (name or "?").replace("(", " ").split() if w[:1].isalpha()]
+    return "".join(w[0] for w in words[:2]).upper() or "?"
+
+
+@app.template_filter("hue")
+def _hue(text):
+    """Stable avatar colour derived from a name or ID."""
+    return sum(ord(c) * (i + 1) for i, c in enumerate(text or "")) % 360
+
+
+@app.template_filter("longdate")
+def _longdate(iso):
+    return f"{date.fromisoformat(iso):%A, %d %B %Y}"
+
+
+def task_state(st, t, committed):
+    """Classify a task for badges and filters on the Today page."""
+    if t["status"] == "done":
+        return "done"
+    if t["id"] in committed:
+        return "committed"
+    prereqs_done = all(st["tasks"].get(p, {}).get("status") == "done" for p in t["prereqs"])
+    if t["kind"] == GATE:
+        return "gate-ready" if prereqs_done else "gate-upcoming"
+    if t.get("effort_max_h") in (None, ""):
+        return "needs-info"
+    return "ready" if prereqs_done else "waiting"
+
+
+def attention(st, committed=None):
+    """Items the manager should act on today (the sidebar badge and inbox)."""
+    if committed is None:
+        committed = {c["task_id"] for c in st["commitments"] if c["date"] == st["plan_date"]}
+    gates = [t for t in st["tasks"].values() if task_state(st, t, committed) == "gate-ready"]
+    staff = [s for s in st["staff"].values() if s.get("confirmed_on") != st["plan_date"]]
+    info = [t for t in st["tasks"].values() if task_state(st, t, committed) == "needs-info"]
+    return {"gates": gates, "staff": staff, "info": info,
+            "count": len(gates) + len(staff) + len(info)}
+
+
 @app.context_processor
 def _globals():
-    return {"POLICY_LABELS": POLICY_LABELS, "TEMPLATES": TEMPLATES, "GATE": GATE}
+    st = _state()
+    return {"POLICY_LABELS": POLICY_LABELS, "TEMPLATES": TEMPLATES, "GATE": GATE,
+            "nav_attention": attention(st)["count"],
+            "nav_commitments": sum(1 for c in st["commitments"] if c["date"] == st["plan_date"])}
 
 
 # ------------------------------------------------------------------ pages
@@ -107,8 +171,22 @@ def today():
     waiting = {tid: [st["tasks"][p]["name"] for p in t["prereqs"]
                      if p in st["tasks"] and st["tasks"][p]["status"] != "done"]
                for tid, t in st["tasks"].items()}
-    return render_template("today.html", st=st, groups=groups, committed=committed,
-                           staff_names=staff_names, waiting=waiting, errors=errors)
+    states = {tid: task_state(st, t, committed) for tid, t in st["tasks"].items()}
+    counts = {k: 0 for k in ("ready", "waiting", "committed", "done")}
+    for v in states.values():
+        bucket = {"ready": "ready", "gate-ready": "ready", "committed": "committed",
+                  "done": "done"}.get(v, "waiting")
+        counts[bucket] += 1
+    pending = [t for t in st["tasks"].values()
+               if t["status"] != "done" and t["kind"] != GATE]
+    due_soon = sum(1 for t in pending if _due_class(t.get("deadline")) in ("today", "overdue"))
+    confirmed = sum(1 for s in st["staff"].values() if s.get("confirmed_on") == st["plan_date"])
+    return render_template(
+        "today.html", st=st, groups=groups, committed=committed, staff_names=staff_names,
+        waiting=waiting, errors=errors, states=states, counts=counts,
+        att=attention(st, set(committed)), due_soon=due_soon, confirmed=confirmed,
+        ready_tasks=sum(1 for v in states.values() if v == "ready"),
+        gate_waits=sum(1 for v in states.values() if v in ("gate-ready", "gate-upcoming")))
 
 
 @app.get("/plan")
@@ -125,7 +203,13 @@ def plan():
     starts = [s.windows[0][0] for s in rec["staff"]] or [540]
     ends = [s.windows[0][1] for s in rec["staff"]] or [1080]
     lo, hi = min(starts), max(ends)
-    return render_template("plan.html", st=st, rec=rec, t0=lo, t1=hi,
+    now = None
+    if st["plan_date"] == date.today().isoformat():
+        n = datetime.now()
+        now = n.hour * 60 + n.minute
+        if not lo <= now <= hi:
+            now = None
+    return render_template("plan.html", st=st, rec=rec, t0=lo, t1=hi, now=now,
                            hours=list(range(lo // 60, hi // 60 + 1)))
 
 

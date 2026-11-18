@@ -86,7 +86,7 @@ equipment.
 exception-based daily review, recommendations with plain-language reasons, and locked
 commitments. (2) Hand-written implementations of two data structures (adjacency-list
 digraph, array min-heap) and two algorithms (iterative DFS cycle detection, greedy
-priority-based allocation). (3) A test suite of 215 tests including a randomized invariant
+priority-based allocation). (3) A test suite of 217 tests including a randomized invariant
 checker. (4) A benchmark and an optimality study that quantify runtime, memory, and
 schedule quality.
 
@@ -367,7 +367,7 @@ def accept(st, task_ids, version):
 % =====================================================================
 \section{Testing Procedures and Results}
 % =====================================================================
-The suite contains 215 automated tests (pytest), all passing (Table~\ref{tab:tests}).
+The suite contains 217 automated tests (pytest), all passing (Table~\ref{tab:tests}).
 
 \begin{table}[t]
 \centering
@@ -381,9 +381,9 @@ The suite contains 215 automated tests (pytest), all passing (Table~\ref{tab:tes
 Data structures & 13 & heap vs.\ \texttt{heapq} on 5{,}000 random ops; cycle path; 5k-node chain \\
 Allocator behaviour & 25 & proposal Table~1; gates; locks; tie-breaks; reasons \\
 Randomized invariants & 160 & 40 seeds $\times$ 2 policies $\times$ 2 release modes \\
-Web store and routes & 17 & templates; stale accept; revision rounds; HTMX partial \\
+Web store and routes & 19 & templates; stale accept; revision rounds; HTMX partial \\
 \midrule
-Total & 215 & all pass in $<$1\,s \\
+Total & 217 & all pass in $<$1\,s \\
 \bottomrule
 \end{tabular}
 \end{table}

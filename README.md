@@ -14,7 +14,7 @@ never assumes an approval will arrive on time.
 ```bash
 pip install -r requirements.txt
 python -m campaignflow.web.app          # http://127.0.0.1:5000
-python -m pytest -q                     # 215 tests
+python -m pytest -q                     # 217 tests
 python -m campaignflow.bench.run        # benchmarks -> docs/results/
 ```
 

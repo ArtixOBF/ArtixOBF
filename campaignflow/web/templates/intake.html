@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Intake · CampaignFlow{% endblock %}
+{% block content %}
+<div class="intro">
+  <h1>Intake</h1>
+  <p class="muted">Templates create the usual steps, skills, prerequisite links and effort ranges.
+    Deadlines are inherited from the campaign; IDs are generated automatically.</p>
+</div>
+<div class="grid2">
+<section class="panel">
+  <h2>New campaign from template</h2>
+  <form method="post" action="{{ url_for('campaigns_add') }}" class="form-grid">
+    <label>Template
+      <select name="template">{% for k, tpl in TEMPLATES.items() %}<option value="{{ k }}">{{ tpl.label }}</option>{% endfor %}</select></label>
+    <label>Client <input name="client" required placeholder="Client name"></label>
+    <label>Campaign name <input name="name" required placeholder="e.g. Summer launch"></label>
+    <label>Campaign deadline <input name="deadline" type="datetime-local" required></label>
+    <div class="wide"><button class="primary">Create campaign</button></div>
+  </form>
+  <details class="small">
+    <summary>What each template creates</summary>
+    {% for k, tpl in TEMPLATES.items() %}
+      <p><strong>{{ tpl.label }}:</strong>
+      {% for s in tpl.steps %}{{ s.name }}{% if s.kind == 'gate' %} <em>(gate)</em>{% else %} ({{ s.skill }}, {{ s.effort[0] }}–{{ s.effort[1] }}h){% endif %}{{ ' → ' if not loop.last }}{% endfor %}</p>
+    {% endfor %}
+  </details>
+
+  <h2>Ad-hoc task or gate</h2>
+  <form method="post" action="{{ url_for('tasks_add') }}">
+    {% set t = none %}
+    {% include "_task_fields.html" %}
+    <button class="primary">Add</button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>Staff</h2>
+  <table><thead><tr><th>ID</th><th>Name</th><th>Skills</th><th>Hours</th><th></th></tr></thead><tbody>
+  {% for s in st.staff.values() %}
+    <tr><td class="mono">{{ s.id }}</td><td>{{ s.name }}</td><td>{{ s.skills|join(', ') }}</td>
+      <td>{{ s.window[0] }}–{{ s.window[1] }}</td>
+      <td><form method="post" action="{{ url_for('staff_delete', sid=s.id) }}" class="inline"
+                hx-confirm="Remove {{ s.name }}? Their commitments are released."><button class="link">remove</button></form></td></tr>
+  {% endfor %}</tbody></table>
+  <h3>Add staff member</h3>
+  <form method="post" action="{{ url_for('staff_add') }}" class="form-grid">
+    <label>Name <input name="name" required></label>
+    <label>Skills (comma separated) <input name="skills" required placeholder="editing, writing"></label>
+    <label>Start <input name="start" value="09:00" pattern="\d{1,2}:\d{2}"></label>
+    <label>End <input name="end" value="18:00" pattern="\d{1,2}:\d{2}"></label>
+    <label class="check"><input type="checkbox" name="lunch" value="1" checked> 12:00–13:00 lunch</label>
+    <div class="wide"><button class="primary">Add staff</button></div>
+  </form>
+</section>
+</div>
+{% endblock %}

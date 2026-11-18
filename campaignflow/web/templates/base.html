@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}CampaignFlow{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="{{ url_for('static', filename='htmx-2.0.4.min.js') }}"></script>
+</head>
+<body hx-boost="true">
+  <header class="top">
+    <div class="brand">Campaign<span>Flow</span></div>
+    <nav>
+      {% set ep = request.endpoint %}
+      <a href="{{ url_for('today') }}" class="{{ 'on' if ep == 'today' }}">1 · Daily review</a>
+      <a href="{{ url_for('plan') }}" class="{{ 'on' if ep == 'plan' }}">2 · Recommendations</a>
+      <a href="{{ url_for('intake') }}" class="{{ 'on' if ep == 'intake' }}">Intake</a>
+    </nav>
+    <form class="day" method="post" action="{{ url_for('day') }}">
+      <label>Planning day
+        <input type="date" name="date" value="{{ st.plan_date }}" onchange="this.form.requestSubmit()">
+      </label>
+    </form>
+  </header>
+  <main id="main">
+    {% with msgs = get_flashed_messages(with_categories=true) %}
+      {% for cat, m in msgs %}<div class="flash {{ cat }}">{{ m }}</div>{% endfor %}
+    {% endwith %}
+    {% for n in st.notices %}<div class="flash warn">{{ n }}</div>{% endfor %}
+    {% block content %}{% endblock %}
+  </main>
+  <footer>Synthetic demo data · MSYS 30 prototype ·
+    <form method="post" action="{{ url_for('reset_demo') }}" class="inline"
+          hx-confirm="Replace all data with the demo agency?"><button class="link">reset demo</button></form>
+  </footer>
+</body>
+</html>

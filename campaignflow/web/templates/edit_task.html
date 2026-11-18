@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ t.id }} · CampaignFlow{% endblock %}
+{% block content %}
+<h1>Edit <span class="mono">{{ t.id }}</span></h1>
+<section class="panel">
+  <form method="post" action="{{ url_for('tasks_edit', tid=t.id) }}">
+    {% include "_task_fields.html" %}
+    <button class="primary">Save</button>
+    <a href="{{ url_for('today') }}">Cancel</a>
+  </form>
+  <form method="post" action="{{ url_for('tasks_delete', tid=t.id) }}" class="danger-zone"
+        hx-confirm="Delete {{ t.id }}? Links to it are removed too.">
+    <button class="danger">Delete task</button>
+  </form>
+</section>
+{% endblock %}

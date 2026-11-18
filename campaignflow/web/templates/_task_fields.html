@@ -1,0 +1,30 @@
+{# Shared task form fields. `t` may be undefined for a new task. #}
+<div class="form-grid">
+  <label>Name <input name="name" required value="{{ t.name if t else '' }}"></label>
+  <label>Kind
+    <select name="kind">
+      <option value="task" {{ 'selected' if not t or t.kind == 'task' }}>Production task (staff)</option>
+      <option value="gate" {{ 'selected' if t and t.kind == 'gate' }}>External gate (filming, approval)</option>
+    </select></label>
+  <label>Required skill <input name="skill" list="skills" value="{{ t.skill or '' if t else '' }}" placeholder="editing"></label>
+  <label>Effort min (h) <input name="effort_min_h" type="number" step="0.25" min="0" value="{{ t.effort_min_h if t and t.effort_min_h is not none else '' }}"></label>
+  <label>Effort max (h) <input name="effort_max_h" type="number" step="0.25" min="0.25" value="{{ t.effort_max_h if t and t.effort_max_h is not none else '' }}"></label>
+  <label>Deadline <input name="deadline" type="datetime-local" value="{{ t.deadline or '' if t else '' }}"></label>
+  <label>Urgency
+    <select name="urgency">
+      <option value="normal">normal</option>
+      <option value="urgent" {{ 'selected' if t and t.urgency == 'urgent' }}>urgent</option>
+    </select></label>
+  <label>Campaign
+    <select name="campaign"><option value="">(ad-hoc)</option>
+      {% for c in st.campaigns.values() %}<option value="{{ c.id }}" {{ 'selected' if t and t.campaign == c.id }}>{{ c.client }} — {{ c.name }}</option>{% endfor %}
+    </select></label>
+  <label class="wide">Prerequisites (select by name; Ctrl/Cmd-click for several)
+    <select name="prereqs" multiple size="6">
+      {% for o in st.tasks.values() if not t or o.id != t.id %}
+        <option value="{{ o.id }}" {{ 'selected' if t and o.id in t.prereqs }}>{{ o.name }} ({{ o.id }}{{ ', gate' if o.kind == 'gate' }})</option>
+      {% endfor %}
+    </select></label>
+</div>
+<datalist id="skills"><option value="writing"><option value="editing"></datalist>
+<p class="muted small">Leave effort blank if unknown: the task will be held back until an estimate is confirmed.</p>

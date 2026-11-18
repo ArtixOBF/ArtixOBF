@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}Recommendations · CampaignFlow{% endblock %}
+{% macro pct(m) %}{{ ((m - t0) / (t1 - t0) * 100)|round(3) }}{% endmacro %}
+{% macro width(a, b) %}{{ ((b - a) / (t1 - t0) * 100)|round(3) }}{% endmacro %}
+{% block content %}
+{% set plan = rec.plan %}
+{% set tasks = rec.tasks %}
+{% set names = {} %}{% for s in rec.staff %}{% set _ = names.update({s.id: s.name}) %}{% endfor %}
+
+<div class="intro">
+  <h1>Recommendations for {{ st.plan_date }}</h1>
+  <form method="post" action="{{ url_for('settings') }}" class="row settings">
+    <label>Priority rule
+      <select name="policy" onchange="this.form.requestSubmit()">
+        {% for k, label in POLICY_LABELS.items() %}
+          <option value="{{ k }}" {{ 'selected' if k == rec.policy }}>{{ label }}</option>{% endfor %}
+      </select></label>
+    <label title="If on, a task can start later today once its internal prerequisite is planned to finish. External gates always need confirmation.">
+      <input type="checkbox" name="same_day_release" value="1" {{ 'checked' if st.settings.same_day_release }}
+             onchange="this.form.requestSubmit()"> Same-day release of internal prerequisites</label>
+  </form>
+</div>
+
+{% if plan.errors %}
+  <div class="panel error-panel">
+    <h3>Planning stopped: inputs need review</h3>
+    <ul>{% for e in plan.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+    <p class="muted small">Fix these on the <a href="{{ url_for('today') }}">Daily review</a> page (or unlock the conflicting commitment below).</p>
+  </div>
+{% else %}
+{% set s = rec.summary %}{% set o = rec.alt_summary %}
+<div class="cards">
+  <div class="card"><div class="big">{{ s.allocated }}</div>proposed</div>
+  <div class="card {{ 'bad' if s.at_risk }}"><div class="big">{{ s.at_risk }}</div>deadline risk<br><span class="muted small">under upper estimates</span></div>
+  <div class="card"><div class="big">{{ s.capacity }}</div>no slot today</div>
+  <div class="card"><div class="big">{{ s.blocked }}</div>waiting on prerequisites</div>
+  <div class="card"><div class="big">{{ s.missing_info + s.no_staff }}</div>missing info / staff</div>
+  <div class="card compare">
+    <strong>vs {{ POLICY_LABELS[rec.other_policy] }}</strong><br>
+    deadline risk: {{ o.at_risk }} ({{ '%+d'|format(s.at_risk - o.at_risk) }})<br>
+    projected lateness: {{ (o.total_lateness/60)|round(1) }}h vs {{ (s.total_lateness/60)|round(1) }}h
+  </div>
+</div>
+{% endif %}
+
+<section class="panel">
+  <h2>Timeline</h2>
+  <div class="timeline">
+    <div class="tl-row tl-axis"><div class="tl-name"></div><div class="tl-track">
+      {% for h in hours %}<span class="tick" style="left: {{ pct(h*60) }}%">{{ '%02d'|format(h) }}</span>{% endfor %}
+    </div></div>
+    {% for sf in rec.staff %}
+    <div class="tl-row">
+      <div class="tl-name">{{ sf.name }}{% if not sf.availability_confirmed %}<br><span class="pill wait">unconfirmed</span>{% endif %}</div>
+      <div class="tl-track {{ 'dim' if not sf.availability_confirmed }}">
+        {% for a, b in sf.windows %}<div class="bar window" style="left: {{ pct(a) }}%; width: {{ width(a, b) }}%"></div>{% endfor %}
+        {% for a, b in sf.exceptions %}<div class="bar exc" style="left: {{ pct([a, t0]|max) }}%; width: {{ width([a, t0]|max, [b, t1]|min) }}%" title="Unavailable {{ a|hhmm }}–{{ b|hhmm }}"></div>{% endfor %}
+        {% for c in rec.commitments if c.staff_id == sf.id %}
+          <div class="bar lock" style="left: {{ pct(c.start) }}%; width: {{ width(c.start, c.end) }}%"
+               title="🔒 {{ tasks[c.task_id].name }} {{ c.start|hhmm }}–{{ c.end|hhmm }}">🔒 {{ c.task_id }}</div>
+        {% endfor %}
+        {% for a in plan.assignments if a.staff_id == sf.id %}
+          <div class="bar prop {{ 'risk' if a.at_risk }}" style="left: {{ pct(a.start) }}%; width: {{ width(a.start, a.end) }}%"
+               title="{{ tasks[a.task_id].name }} {{ a.start|hhmm }}–{{ a.end|hhmm }}">{{ a.task_id }}</div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  <p class="legend small"><span class="bar prop sw"></span> proposed <span class="bar prop risk sw"></span> deadline risk
+    <span class="bar lock sw"></span> committed <span class="bar exc sw"></span> meeting/absence</p>
+</section>
+
+{% if not plan.errors %}
+<div class="grid2">
+<section class="panel">
+  <h2>Proposed sequence</h2>
+  {% if plan.assignments %}
+  <form method="post" action="{{ url_for('plan_accept') }}">
+    <input type="hidden" name="version" value="{{ rec.version }}">
+    <table>
+      <thead><tr><th><input type="checkbox" checked onclick="for (const b of this.closest('table').querySelectorAll('input[name=ids]')) b.checked = this.checked" aria-label="Select all"></th>
+        <th>Task</th><th>Who</th><th>Window</th><th>Effort</th><th>Due</th></tr></thead>
+      <tbody>
+      {% for a in plan.assignments|sort(attribute='start') %}{% set t = tasks[a.task_id] %}
+        <tr class="{{ 'risk-row' if a.at_risk }}">
+          <td><input type="checkbox" name="ids" value="{{ a.task_id }}" checked></td>
+          <td><span class="mono">{{ a.task_id }}</span> {{ t.name }}
+            {% if t.urgency == 'urgent' %}<span class="pill urgent">urgent</span>{% endif %}
+            {% if a.at_risk %}<div class="small bad-text">Finishes {{ a.end|hhmm }}, after its deadline under the upper estimate.</div>{% endif %}</td>
+          <td>{{ names[a.staff_id] }}</td>
+          <td class="mono">{{ a.start|hhmm }}–{{ a.end|hhmm }}</td>
+          <td>{{ (t.effort_min or t.effort_max)/60 }}–{{ t.effort_max/60 }}h</td>
+          <td>{{ t.deadline|hhmm }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <p class="muted small">Windows reserve the upper estimate; they show conditional feasibility, not promised finish times.</p>
+    <button class="primary">Accept selected as commitments</button>
+  </form>
+  {% else %}<p class="muted">Nothing can be proposed right now.</p>{% endif %}
+
+  {% if rec.changes %}
+  <h3>Changed since last recommendation</h3>
+  <ul class="small">{% for ch in rec.changes %}
+    <li><span class="mono">{{ ch.task_id }}</span>:
+      {% if ch.before %}{{ names.get(ch.before[0], ch.before[0]) }} {{ ch.before[1]|hhmm }}{% else %}not proposed{% endif %}
+      → {% if ch.after %}{{ names.get(ch.after[0], ch.after[0]) }} {{ ch.after[1]|hhmm }}{% else %}not proposed{% endif %}</li>
+  {% endfor %}</ul>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <h2>Not scheduled, and why</h2>
+  {% set cats = [('capacity', 'No slot today'), ('missing_info', 'Missing information'), ('no_staff', 'No qualified staff'), ('blocked', 'Waiting on prerequisites')] %}
+  {% for key, label in cats %}
+    {% set rows = plan.blocked|selectattr('category', 'equalto', key)|list %}
+    {% if rows %}
+    <h3>{{ label }} <span class="muted">({{ rows|length }})</span></h3>
+    <ul class="reasons">{% for b in rows %}
+      <li><span class="mono">{{ b.task_id }}</span> {{ tasks[b.task_id].name }}<br><span class="muted small">{{ b.reason }}</span></li>
+    {% endfor %}</ul>
+    {% endif %}
+  {% else %}{% endfor %}
+  {% if not plan.blocked %}<p class="muted">Every ready task has a proposal.</p>{% endif %}
+</section>
+</div>
+{% endif %}
+
+<section class="panel">
+  <h2>Commitments (locked)</h2>
+  {% if rec.commitments %}
+  <table><thead><tr><th>Task</th><th>Who</th><th>Window</th><th></th></tr></thead><tbody>
+  {% for c in rec.commitments|sort(attribute='start') %}
+    <tr><td><span class="mono">{{ c.task_id }}</span> {{ tasks[c.task_id].name if c.task_id in tasks else '' }}
+        {% if c.task_id in tasks and tasks[c.task_id].is_done %}<span class="pill ok">done</span>{% endif %}</td>
+      <td>{{ names.get(c.staff_id, c.staff_id) }}</td><td class="mono">{{ c.start|hhmm }}–{{ c.end|hhmm }}</td>
+      <td><form method="post" action="{{ url_for('commitment_unlock', tid=c.task_id) }}" class="inline"><button class="link">unlock</button></form></td></tr>
+  {% endfor %}</tbody></table>
+  {% else %}<p class="muted">No commitments yet for this day.</p>{% endif %}
+</section>
+{% endblock %}

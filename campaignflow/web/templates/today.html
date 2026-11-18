@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Daily review · CampaignFlow{% endblock %}
+{% block content %}
+<div class="intro">
+  <h1>Daily review</h1>
+  <p class="muted">Update only what changed: mark finished work, confirm external gates,
+    and check each person's availability. Then open <a href="{{ url_for('plan') }}">Recommendations</a>.</p>
+</div>
+
+{% if errors %}
+<div class="panel error-panel">
+  <h3>Fix before planning</h3>
+  <ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+
+<div class="grid2">
+<section>
+  <form method="post" action="{{ url_for('tasks_bulk') }}" id="bulk">
+    <div class="toolbar">
+      <strong>Selected:</strong>
+      <button name="action" value="done">Mark done</button>
+      <button name="action" value="confirm">Confirm gate</button>
+      <button name="action" value="urgent">Urgent</button>
+      <button name="action" value="normal">Normal</button>
+      <button name="action" value="reopen" class="ghost">Reopen</button>
+    </div>
+    {% for cid, items in groups.items() %}
+      {% set c = st.campaigns.get(cid) %}
+      <div class="campaign">
+        <h3>{% if c %}{{ c.client }} — {{ c.name }} <span class="muted">({{ cid }}, due {{ c.deadline|due }})</span>
+            {% else %}Ad-hoc tasks{% endif %}</h3>
+        <table>
+          <thead><tr><th></th><th>ID</th><th>Step</th><th>Skill</th><th>Effort (h)</th><th>Due</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+          {% for t in items %}
+            {% set gate = t.kind == GATE %}
+            <tr class="{{ 'gate' if gate }} {{ 'done' if t.status == 'done' }}">
+              <td><input type="checkbox" name="ids" value="{{ t.id }}" aria-label="Select {{ t.id }}"></td>
+              <td class="mono">{{ t.id }}</td>
+              <td>{{ t.name }}
+                {% if t.urgency == 'urgent' %}<span class="pill urgent">urgent</span>{% endif %}
+                {% if gate %}<span class="pill ext">external gate</span>{% endif %}
+                {% if waiting[t.id] and t.status != 'done' %}<div class="muted small">after: {{ waiting[t.id]|join(', ') }}</div>{% endif %}
+              </td>
+              <td>{{ t.skill or '—' }}</td>
+              <td>{% if gate %}—{% else %}{{ t.effort_min_h|hours }}–{{ t.effort_max_h|hours }}{% endif %}</td>
+              <td>{{ t.deadline|due }}</td>
+              <td>
+                {% if t.status == 'done' %}<span class="pill ok">{{ t.outcome or ('confirmed' if gate else 'done') }}</span>
+                {% elif t.id in committed %}{% set c2 = committed[t.id] %}
+                  <span class="pill lock">🔒 {{ staff_names.get(c2.staff_id, c2.staff_id) }} {{ c2.start|hhmm }}–{{ c2.end|hhmm }}</span>
+                {% elif gate %}<span class="pill wait">awaiting</span>
+                {% else %}<span class="pill">pending</span>{% endif %}
+              </td>
+              <td class="actions">
+                {% if gate and t.review and t.status != 'done' %}
+                  <button formaction="{{ url_for('tasks_changes', tid=t.id) }}" name="x" value="1" class="link">changes requested</button>
+                {% endif %}
+                <a href="{{ url_for('edit_task', tid=t.id) }}">edit</a>
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="muted">No tasks yet. Create a campaign on the <a href="{{ url_for('intake') }}">Intake</a> page.</p>
+    {% endfor %}
+  </form>
+</section>
+
+<aside>
+  <h2>Staff availability · {{ st.plan_date }}</h2>
+  <p class="muted small">Work is only proposed for people whose availability is confirmed for this day.</p>
+  {% for s in st.staff.values() %}{% include "_staff_row.html" %}{% endfor %}
+</aside>
+</div>
+{% endblock %}

@@ -33,6 +33,10 @@ The first launch seeds a **synthetic** demo agency into `data/state.json`
 
 More screenshots are in [`docs/screenshots/`](docs/screenshots/).
 
+## Trailer
+
+[`docs/videos/campaignflow-trailer.mp4`](docs/videos/campaignflow-trailer.mp4) is a 1:56 product trailer at 1080p and 60 fps, with a voiceover and score. It covers the problem, the five features with animated algorithm explainers, and the measured impact. It is rendered entirely from code; see [`trailer/README.md`](trailer/README.md).
+
 ## Demo videos
 
 `docs/videos/campaignflow-demo.mp4` is the full walkthrough (about 2 minutes 50 seconds). It joins these five clips:

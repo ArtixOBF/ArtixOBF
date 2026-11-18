@@ -1,0 +1,11 @@
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+build.log
+figures/scaling.png
+figures/policies.png
+figures/optimality.png

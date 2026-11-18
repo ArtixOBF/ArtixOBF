@@ -142,15 +142,18 @@ def recommend(st: dict, policy: Optional[str] = None):
         "policy": policy,
         "other_policy": other,
         "version": st["version"],
-        "changes": _diff(st.get("last_proposal"), plan),
+        "changes": _diff(st.get("last_proposal"), plan, {c.task_id for c in commits}),
     }
 
 
-def _diff(previous: Optional[dict], plan) -> list[dict]:
-    """What moved compared with the last recommendation the manager saw."""
+def _diff(previous: Optional[dict], plan, locked: frozenset = frozenset()) -> list[dict]:
+    """What moved compared with the last recommendation the manager saw.
+
+    Tasks that were since locked in are not "changes": the manager accepted them.
+    """
     if not previous or plan.errors:
         return []
-    prev = previous.get("slots", {})
+    prev = {k: v for k, v in previous.get("slots", {}).items() if k not in locked}
     now = {a.task_id: [a.staff_id, a.start, a.end] for a in plan.assignments}
     out = []
     for tid in sorted(set(prev) | set(now)):

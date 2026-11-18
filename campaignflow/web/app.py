@@ -68,6 +68,12 @@ def _relday(minutes):
     return _due(store.minutes_to_iso(st, minutes))
 
 
+@app.template_filter("short")
+def _short(name):
+    """Drop the ' – Campaign' suffix when the campaign is already shown."""
+    return (name or "").split(" – ")[0]
+
+
 @app.template_filter("hours")
 def _hours(h):
     if h is None or h == "":
@@ -181,8 +187,11 @@ def today():
                if t["status"] != "done" and t["kind"] != GATE]
     due_soon = sum(1 for t in pending if _due_class(t.get("deadline")) in ("today", "overdue"))
     confirmed = sum(1 for s in st["staff"].values() if s.get("confirmed_on") == st["plan_date"])
+    open_n = sum(1 for v in states.values() if v not in ("done", "gate-upcoming"))
+    hour = datetime.now().hour
+    greeting = "Good morning" if hour < 12 else "Good afternoon" if hour < 18 else "Good evening"
     return render_template(
-        "today.html", st=st, groups=groups, committed=committed, staff_names=staff_names,
+        "today.html", st=st, groups=groups, greeting=greeting, open_n=open_n, committed=committed, staff_names=staff_names,
         waiting=waiting, errors=errors, states=states, counts=counts,
         att=attention(st, set(committed)), due_soon=due_soon, confirmed=confirmed,
         ready_tasks=sum(1 for v in states.values() if v == "ready"),

@@ -3,7 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="htmx-config" content='{"globalViewTransitions": true}'>
   <title>{% block title %}CampaignFlow{% endblock %}</title>
+  <script>
+    // Show the splash only on the first page of a browser session.
+    try { if (!sessionStorage.getItem('cf-seen')) document.documentElement.classList.add('splash'); } catch (e) {}
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
@@ -13,32 +18,38 @@
   <script src="{{ url_for('static', filename='app.js') }}" defer></script>
 </head>
 <body hx-boost="true">
+
+<div class="splash-screen" aria-hidden="true">
+  <div class="splash-inner">
+    <svg class="splash-logo" viewBox="0 0 64 64" width="72" height="72">
+      <rect class="sl-box" x="2" y="2" width="60" height="60" rx="16"/>
+      <path class="sl-line l1" d="M18 22h18"/>
+      <path class="sl-line l2" d="M26 32h20"/>
+      <path class="sl-line l3" d="M22 42h14"/>
+    </svg>
+    <div class="splash-word">CampaignFlow</div>
+    <div class="splash-status">Lining up today's work…</div>
+    <div class="splash-bar"><span></span></div>
+  </div>
+</div>
+
 <div class="loading-bar" aria-hidden="true"></div>
 <div class="shell">
   <aside class="sidebar">
     <a class="logo" href="{{ url_for('today') }}">
-      <span class="logo-mark"><svg viewBox="0 0 32 32" width="22" height="22"><rect width="32" height="32" rx="8" fill="currentColor"/><path d="M9 11h9M13 16h10M11 21h7" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg></span>
+      <span class="logo-mark"><svg viewBox="0 0 32 32" width="24" height="24"><rect width="32" height="32" rx="8" fill="currentColor"/><path d="M9 11h9M13 16h10M11 21h7" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg></span>
       <span>CampaignFlow</span>
     </a>
 
-    <div class="workspace">
-      <span class="ws-avatar">DA</span>
-      <div><div class="ws-name">Demo Agency</div><div class="ws-plan">Production workspace</div></div>
-    </div>
-
     {% set ep = request.endpoint %}
     <nav class="nav" aria-label="Main">
-      <div class="nav-label">Workflow</div>
       <a href="{{ url_for('today') }}" class="{{ 'active' if ep == 'today' }}">
         {{ icon('today') }}<span>Today</span>
-        {% if nav_attention %}<span class="count attn" title="Items need attention">{{ nav_attention }}</span>{% endif %}
-        <kbd>1</kbd></a>
+        {% if nav_attention %}<span class="count attn" title="Items need attention">{{ nav_attention }}</span>{% endif %}</a>
       <a href="{{ url_for('plan') }}" class="{{ 'active' if ep == 'plan' }}">
-        {{ icon('plan') }}<span>Plan</span>
-        {% if nav_commitments %}<span class="count" title="Locked commitments today">{{ nav_commitments }}</span>{% endif %}
-        <kbd>2</kbd></a>
+        {{ icon('plan') }}<span>Plan</span></a>
       <a href="{{ url_for('intake') }}" class="{{ 'active' if ep in ('intake', 'edit_task') }}">
-        {{ icon('layers') }}<span>Campaigns &amp; team</span><kbd>3</kbd></a>
+        {{ icon('layers') }}<span>Campaigns</span></a>
     </nav>
 
     <form class="dayswitch" method="post" action="{{ url_for('day') }}">
@@ -50,9 +61,8 @@
     <div class="sidebar-foot">
       <button type="button" class="ghost-btn" data-shortcuts>{{ icon('keyboard', 15) }} Shortcuts <kbd>?</kbd></button>
       <form method="post" action="{{ url_for('reset_demo') }}" hx-confirm="Replace all data with the demo agency?">
-        <button class="ghost-btn">{{ icon('revise', 15) }} Reset demo data</button>
+        <button class="ghost-btn">{{ icon('revise', 15) }} Reset demo</button>
       </form>
-      <p class="fine">Synthetic demo data · MSYS 30</p>
     </div>
   </aside>
 
@@ -65,7 +75,7 @@
       </div>
       <div class="head-actions">{% block actions %}{% endblock %}</div>
     </header>
-    <main id="main">
+    <main id="main" class="reveal">
       {% for n in st.notices %}
         <div class="callout warn">{{ icon('info') }}<div>{{ n }}</div></div>
       {% endfor %}
@@ -78,7 +88,7 @@
   {% with msgs = get_flashed_messages(with_categories=true) %}
     {% for cat, m in msgs %}
       <div class="toast {{ cat }}" role="status">
-        {{ icon('check' if cat == 'ok' else 'alert') }}<span>{{ m }}</span>
+        <span class="toast-icon">{{ icon('check' if cat == 'ok' else 'alert', 14) }}</span><span>{{ m }}</span>
         <button type="button" class="toast-x" aria-label="Dismiss">{{ icon('x', 14) }}</button>
       </div>
     {% endfor %}
@@ -88,9 +98,9 @@
 <dialog class="shortcuts" id="shortcuts">
   <h3>Keyboard shortcuts</h3>
   <dl>
-    <dt><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></dt><dd>Today · Plan · Campaigns &amp; team</dd>
+    <dt><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></dt><dd>Today · Plan · Campaigns</dd>
     <dt><kbd>/</kbd></dt><dd>Search tasks</dd>
-    <dt><kbd>Esc</kbd></dt><dd>Clear selection / close</dd>
+    <dt><kbd>Esc</kbd></dt><dd>Clear selection</dd>
     <dt><kbd>?</kbd></dt><dd>Show this panel</dd>
   </dl>
   <form method="dialog"><button class="btn">Close</button></form>

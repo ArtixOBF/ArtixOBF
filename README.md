@@ -27,8 +27,9 @@ The first launch seeds a **synthetic** demo agency into `data/state.json`
 
 - **Today**: a "needs your attention" inbox (gates ready to confirm, unconfirmed staff, missing estimates), headline numbers, and campaign groups with progress bars. It also has filter chips, instant search, and a bulk-action bar for checked rows.
 - **Plan**: a Gantt timeline per person, the reason each skipped task wasn't scheduled, and an insight card comparing the deadline-first rule with the entry-order baseline. You can accept proposals and lock them as commitments.
-- **Campaigns & team**: template cards that show each campaign's steps, a team roster, and a task editor with a searchable prerequisite picker.
+- **Campaigns**: template cards that show each campaign's steps, a team roster, and a task editor with a searchable prerequisite picker.
 - Dark mode, mobile layout, toasts, a loading bar, and keyboard shortcuts (`1` `2` `3` to switch pages, `/` to search, `Esc` to clear, `?` for help). The app has no CDN dependency at runtime.
+- **Motion**: a branded splash screen on first open, smooth page transitions, numbers that count up, timeline bars that grow in, a cursor spotlight on cards, and a small celebration when a plan is locked in. All motion respects the reduced-motion setting.
 
 More screenshots are in [`docs/screenshots/`](docs/screenshots/).
 

@@ -1,43 +1,33 @@
 {% from "_icons.html" import icon %}
 {% set ok = s.confirmed_on == st.plan_date %}
-<div class="person {{ 'is-confirmed' if ok else 'is-unconfirmed' }}" id="staff-{{ s.id }}">
-  <div class="person-head">
-    <span class="avatar" style="--h: {{ s.name|hue }}">{{ s.name|initials }}</span>
+<details class="person {{ 'is-confirmed' if ok else 'is-unconfirmed' }}" id="staff-{{ s.id }}">
+  <summary class="person-head">
+    <span class="avatar" style="--h: {{ s.name|hue }}">{{ s.name|initials }}<i class="presence {{ 'on' if ok }}"></i></span>
     <div class="person-meta">
       <div class="person-name">{{ s.name }}</div>
-      <div class="person-sub">{{ s.window[0] }}–{{ s.window[1] }} · {% for k in s.skills %}<span class="tag">{{ k }}</span>{% endfor %}</div>
+      <div class="person-sub">{{ s.window[0] }}–{{ s.window[1] }}{% if s.exceptions %} · {{ s.exceptions|length }} block{{ 's' if s.exceptions|length != 1 }}{% endif %}</div>
     </div>
     <form method="post" action="{{ url_for('staff_confirm', sid=s.id) }}"
           hx-post="{{ url_for('staff_confirm', sid=s.id) }}" hx-target="#staff-{{ s.id }}" hx-swap="outerHTML">
       <input type="hidden" name="confirmed" value="{{ '0' if ok else '1' }}">
-      {% if ok %}
-        <button class="status-toggle on" title="Availability confirmed — click to undo">{{ icon('check', 14) }} Confirmed</button>
-      {% else %}
-        <button class="btn btn-sm btn-primary">Confirm today</button>
-      {% endif %}
+      <button class="pill-toggle {{ 'on' if ok }}" title="{{ 'Checked in — click to undo' if ok else 'Mark as working today' }}">
+        {{ icon('check', 12) if ok }}{{ 'In' if ok else 'Check in' }}</button>
     </form>
-  </div>
-  {% if s.recurring or s.exceptions %}
-  <div class="timeoff">
-    {% for e in s.recurring %}<span class="time-pill muted">{{ e.start }}–{{ e.end }} {{ e.label }}</span>{% endfor %}
+  </summary>
+  <div class="person-body">
     {% for e in s.exceptions %}
-      <span class="time-pill">{{ icon('clock', 12) }} {{ e.start }}–{{ e.end }} {{ e.label }}
+      <div class="time-row">{{ icon('clock', 13) }} {{ e.start }}–{{ e.end }} <span class="muted">{{ e.label }}</span>
         <form method="post" class="inline" action="{{ url_for('staff_exception_delete', sid=s.id, i=loop.index0) }}">
-          <button class="pill-x" aria-label="Remove {{ e.label }}">{{ icon('x', 11) }}</button></form></span>
+          <button class="pill-x" aria-label="Remove {{ e.label }}">{{ icon('x', 11) }}</button></form></div>
     {% endfor %}
-  </div>
-  {% endif %}
-  <details class="disclose">
-    <summary>{{ icon('plus', 13) }} Add meeting or time off</summary>
     <form method="post" action="{{ url_for('staff_exception', sid=s.id) }}" class="timeoff-form">
       <input name="start" type="time" required aria-label="From">
-      <span class="muted">to</span>
       <input name="end" type="time" required aria-label="Until">
       <input name="label" placeholder="Meeting" aria-label="Label">
-      <button class="btn btn-sm">Add</button>
+      <button class="btn btn-sm">Block time</button>
     </form>
     <form method="post" action="{{ url_for('staff_absent', sid=s.id) }}">
-      <button class="link-btn">Mark absent for the whole day</button>
+      <button class="link-btn">Off all day</button>
     </form>
-  </details>
-</div>
+  </div>
+</details>

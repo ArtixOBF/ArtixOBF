@@ -1,31 +1,31 @@
 {% extends "base.html" %}
 {% from "_icons.html" import icon %}
 {% block title %}Plan · CampaignFlow{% endblock %}
-{% block heading %}Plan{% endblock %}
-{% block subheading %}Recommended assignments for {{ st.plan_date|longdate }}{% endblock %}
+{% block heading %}Your plan{% endblock %}
+{% block subheading %}{{ st.plan_date|longdate }}{% endblock %}
 {% macro pct(m) %}{{ ((m - t0) / (t1 - t0) * 100)|round(3) }}{% endmacro %}
 {% macro width(a, b) %}{{ ((b - a) / (t1 - t0) * 100)|round(3) }}{% endmacro %}
-{% macro delta(mine, theirs, unit='', lower_better=true) -%}
-  {%- set d = mine - theirs -%}
-  {%- if d == 0 -%}<span class="delta same">same</span>
-  {%- else -%}{%- set good = (d < 0) if lower_better else (d > 0) -%}
-    <span class="delta {{ 'good' if good else 'bad' }}">{{ '+' if d > 0 }}{{ d|round(1) if unit else d }}{{ unit }}</span>
-  {%- endif -%}
-{%- endmacro %}
 
 {% block actions %}
 <form method="post" action="{{ url_for('settings') }}" class="plan-settings">
+  <span class="muted small">Prioritise by</span>
   <div class="segmented" role="radiogroup" aria-label="Priority rule">
     {% for k, label in POLICY_LABELS.items() %}
       <label class="{{ 'on' if k == rec.policy }}">
         <input type="radio" name="policy" value="{{ k }}" {{ 'checked' if k == rec.policy }} onchange="this.form.requestSubmit()">
-        {{ 'Deadline-first' if k == 'deadline' else 'Entry order' }}</label>
+        {{ 'Deadline' if k == 'deadline' else 'Order received' }}</label>
     {% endfor %}
   </div>
-  <label class="switch" title="A task may start later today once its internal prerequisite is planned to finish. External gates always need confirmation.">
-    <input type="checkbox" name="same_day_release" value="1" {{ 'checked' if st.settings.same_day_release }} onchange="this.form.requestSubmit()">
-    <span class="track"><span class="thumb"></span></span> Same-day release
-  </label>
+  <details class="popover">
+    <summary class="icon-btn bordered" title="Planning settings">{{ icon('settings', 16) }}</summary>
+    <div class="popover-panel">
+      <label class="switch">
+        <input type="checkbox" name="same_day_release" value="1" {{ 'checked' if st.settings.same_day_release }} onchange="this.form.requestSubmit()">
+        <span class="track"><span class="thumb"></span></span>
+        <span><b>Same-day hand-offs</b><small>Let the next step start today once the previous one is planned to finish. External steps still need your confirmation.</small></span>
+      </label>
+    </div>
+  </details>
 </form>
 {% endblock %}
 
@@ -37,83 +37,72 @@
 {% if plan.errors %}
   <div class="callout danger">
     {{ icon('alert', 18) }}
-    <div><strong>Planning paused: some inputs conflict</strong>
+    <div><strong>Planning is paused: some inputs conflict</strong>
       <ul>{% for e in plan.errors %}<li>{{ e }}</li>{% endfor %}</ul>
-      <p class="muted">Fix these on <a href="{{ url_for('today') }}">Today</a>, or unlock the conflicting commitment below.</p></div>
+      <p class="muted">Fix these on <a href="{{ url_for('today') }}">Today</a>, or unlock the commitment below.</p></div>
   </div>
 {% else %}
 {% set s = rec.summary %}{% set o = rec.alt_summary %}
-<section class="kpis five">
-  <div class="kpi"><div class="kpi-label">{{ icon('sparkle', 14) }} Proposed</div><div class="kpi-value">{{ s.allocated }}</div>
-    <div class="kpi-foot">{{ (s.utilised_minutes / 60)|round(1) }}h of work placed</div></div>
-  <div class="kpi {{ 'kpi-alert' if s.at_risk }}"><div class="kpi-label">{{ icon('alert', 14) }} Deadline risk</div><div class="kpi-value">{{ s.at_risk }}</div>
-    <div class="kpi-foot">late under upper estimates</div></div>
-  <div class="kpi"><div class="kpi-label">{{ icon('clock', 14) }} No slot today</div><div class="kpi-value">{{ s.capacity }}</div>
-    <div class="kpi-foot">{{ (s.unmet_demand / 60)|round(1) }}h unmet demand</div></div>
-  <div class="kpi"><div class="kpi-label">{{ icon('flag', 14) }} Waiting</div><div class="kpi-value">{{ s.blocked }}</div>
-    <div class="kpi-foot">on gates or prerequisites</div></div>
-  <div class="kpi"><div class="kpi-label">{{ icon('info', 14) }} Needs input</div><div class="kpi-value">{{ s.missing_info + s.no_staff }}</div>
-    <div class="kpi-foot">missing estimate or staff</div></div>
-</section>
-
-<section class="card insight">
-  <div class="insight-icon">{{ icon('trend', 18) }}</div>
-  <div class="insight-body">
-    <div class="insight-title">
+{% set other = 'order received' if rec.other_policy == 'entry' else 'deadline' %}
+<section class="hero spot">
+  <div class="hero-main">
+    {% if s.allocated == 0 and rec.commitments %}
+    <div class="hero-kicker">{{ icon('lock', 14) }} Locked in</div>
+    <div class="hero-title">Your day is set 🎉</div>
+    <div class="hero-sub">{{ icon('check', 14) }} {{ rec.commitments|length }} task{{ 's' if rec.commitments|length != 1 }} locked in. Nothing else fits today.</div>
+    {% else %}
+    <div class="hero-kicker">{{ icon('sparkle', 14) }} Recommended plan</div>
+    <div class="hero-title">
+      <span data-count-to="{{ s.allocated }}">{{ s.allocated }}</span> task{{ 's' if s.allocated != 1 }} scheduled,
+      {% if s.at_risk %}<span class="bad">{{ s.at_risk }} at risk</span>{% else %}<span class="good">all on time</span>{% endif %}.
+    </div>
+    <div class="hero-sub">
       {% if s.at_risk < o.at_risk %}
-        {{ POLICY_LABELS[rec.policy] }} avoids {{ o.at_risk - s.at_risk }} late task{{ 's' if o.at_risk - s.at_risk != 1 }} compared with {{ 'entry order' if rec.other_policy == 'entry' else 'deadline-first' }}.
+        {{ icon('trend', 14) }} Prioritising by {{ 'deadline' if rec.policy == 'deadline' else 'order received' }} saves <b>{{ o.at_risk - s.at_risk }} late task{{ 's' if o.at_risk - s.at_risk != 1 }}</b>
+        ({{ ((o.total_lateness - s.total_lateness)/60)|round(1) }}h) compared with {{ other }}.
       {% elif s.at_risk > o.at_risk %}
-        {{ 'Entry order' if rec.other_policy == 'entry' else 'Deadline-first' }} would have {{ s.at_risk - o.at_risk }} fewer late task{{ 's' if s.at_risk - o.at_risk != 1 }} today.
+        {{ icon('alert', 14) }} Prioritising by {{ other }} would have {{ s.at_risk - o.at_risk }} fewer late task{{ 's' if s.at_risk - o.at_risk != 1 }}.
       {% else %}
-        Both priority rules give the same deadline risk today.
+        {{ icon('check', 14) }} Prioritising by {{ other }} gives the same result today.
       {% endif %}
     </div>
-    <p class="muted">Same tasks, staff and feasibility checks; only the priority order differs.</p>
+    {% endif %}
   </div>
-  <table class="compare">
-    <thead><tr><th></th><th>This plan</th><th>{{ 'Entry order' if rec.other_policy == 'entry' else 'Deadline-first' }}</th><th></th></tr></thead>
-    <tbody>
-      <tr><td>Deadline risk</td><td class="tnum">{{ s.at_risk }}</td><td class="tnum">{{ o.at_risk }}</td><td>{{ delta(s.at_risk, o.at_risk) }}</td></tr>
-      <tr><td>Projected lateness</td><td class="tnum">{{ (s.total_lateness/60)|round(1) }}h</td><td class="tnum">{{ (o.total_lateness/60)|round(1) }}h</td>
-        <td>{{ delta((s.total_lateness/60)|round(1), (o.total_lateness/60)|round(1), 'h') }}</td></tr>
-      <tr><td>Tasks placed</td><td class="tnum">{{ s.allocated }}</td><td class="tnum">{{ o.allocated }}</td><td>{{ delta(s.allocated, o.allocated, lower_better=false) }}</td></tr>
-    </tbody>
-  </table>
+  <div class="hero-stats">
+    {% if s.allocated %}<div>{% set hrs = '%g'|format((s.utilised_minutes / 60)|round(1)) %}<b data-count-to="{{ hrs }}">{{ hrs }}</b>h<span>of work placed</span></div>{% endif %}
+    {% if rec.commitments %}<div><b data-count-to="{{ rec.commitments|length }}">{{ rec.commitments|length }}</b><span>locked in</span></div>{% endif %}
+    <div><b data-count-to="{{ plan.blocked|length }}">{{ plan.blocked|length }}</b><span>can't start today</span></div>
+  </div>
 </section>
 {% endif %}
 
-<section class="card">
+<section class="card spot">
   <div class="card-head">
     <h2>{{ icon('plan', 16) }} Timeline</h2>
-    <div class="legend">
-      <span><i class="sw prop"></i>Proposed</span><span><i class="sw risk"></i>Deadline risk</span>
-      <span><i class="sw lock"></i>Locked</span><span><i class="sw off"></i>Unavailable</span>
-    </div>
+    <div class="legend"><span><i class="sw prop"></i>Planned</span><span><i class="sw risk"></i>At risk</span><span><i class="sw lock"></i>Locked</span></div>
   </div>
-  <div class="gantt" style="--cols: {{ hours|length - 1 }}">
+  <div class="gantt">
     <div class="g-row g-axis"><div class="g-label"></div><div class="g-track">
-      {% for h in hours %}<span class="g-hour" style="left: {{ pct(h*60) }}%">{{ '%02d:00'|format(h) }}</span>{% endfor %}
+      {% for h in hours %}<span class="g-hour" style="left: {{ pct(h*60) }}%">{{ '%02d'|format(h) }}:00</span>{% endfor %}
     </div></div>
     {% for sf in rec.staff %}
     <div class="g-row">
       <div class="g-label">
         <span class="avatar xs" style="--h: {{ sf.name|hue }}">{{ sf.name|initials }}</span>
-        <div><div class="g-name">{{ sf.name }}</div>
-          {% if not sf.availability_confirmed %}<span class="badge badge-warning sm"><i class="dot"></i>Unconfirmed</span>
-          {% else %}<span class="cell-sub">{{ sf.skills|sort|join(' · ') }}</span>{% endif %}</div>
+        <div class="g-name">{{ sf.name }}{% if not sf.availability_confirmed %}<div class="task-sub">Not checked in</div>{% endif %}</div>
       </div>
       <div class="g-track {{ 'dim' if not sf.availability_confirmed }}">
         {% for h in hours %}<span class="g-line" style="left: {{ pct(h*60) }}%"></span>{% endfor %}
         {% for a, b in sf.windows %}<div class="g-window" style="left: {{ pct(a) }}%; width: {{ width(a, b) }}%"></div>{% endfor %}
         {% for a, b in sf.exceptions %}{% set a2 = [a, t0]|max %}{% set b2 = [b, t1]|min %}{% if b2 > a2 %}
-          <div class="g-off" style="left: {{ pct(a2) }}%; width: {{ width(a2, b2) }}%" title="Unavailable {{ a|hhmm }}–{{ b|hhmm }}"></div>{% endif %}{% endfor %}
+          <div class="g-off" style="left: {{ pct(a2) }}%; width: {{ width(a2, b2) }}%" title="Busy {{ a|hhmm }}–{{ b|hhmm }}"></div>{% endif %}{% endfor %}
         {% for c in rec.commitments if c.staff_id == sf.id %}
-          <a href="#row-{{ c.task_id }}" class="g-bar lock" style="left: {{ pct(c.start) }}%; width: {{ width(c.start, c.end) }}%"
-             data-tip="{{ tasks[c.task_id].name if c.task_id in tasks else c.task_id }} · {{ c.start|hhmm }}–{{ c.end|hhmm }} · locked">{{ icon('lock', 11) }} {{ tasks[c.task_id].name if c.task_id in tasks else c.task_id }}</a>
+          <a href="#row-{{ c.task_id }}" class="g-bar lock" style="left: {{ pct(c.start) }}%; width: {{ width(c.start, c.end) }}%; --d: {{ loop.index0 }}"
+             data-tip="{{ (tasks[c.task_id].name if c.task_id in tasks else c.task_id)|short }} · {{ c.start|hhmm }}–{{ c.end|hhmm }}">{{ icon('lock', 11) }} {{ (tasks[c.task_id].name if c.task_id in tasks else c.task_id)|short }}</a>
         {% endfor %}
         {% for a in plan.assignments if a.staff_id == sf.id %}
-          <a href="#row-{{ a.task_id }}" class="g-bar {{ 'risk' if a.at_risk else 'prop' }}" style="left: {{ pct(a.start) }}%; width: {{ width(a.start, a.end) }}%"
-             data-tip="{{ tasks[a.task_id].name }} · {{ a.start|hhmm }}–{{ a.end|hhmm }}{{ ' · finishes after deadline' if a.at_risk }}">{{ tasks[a.task_id].name }}</a>
+          <a href="#row-{{ a.task_id }}" class="g-bar {{ 'risk' if a.at_risk else 'prop' }}" style="left: {{ pct(a.start) }}%; width: {{ width(a.start, a.end) }}%; --d: {{ loop.index0 }}"
+             data-tip="{{ tasks[a.task_id].name|short }} · {{ a.start|hhmm }}–{{ a.end|hhmm }}{{ ' · finishes late' if a.at_risk }}">{{ tasks[a.task_id].name|short }}</a>
         {% endfor %}
         {% if now is not none %}<span class="g-now" style="left: {{ pct(now) }}%" title="Now {{ now|hhmm }}"></span>{% endif %}
       </div>
@@ -126,94 +115,86 @@
 
 {% if not plan.errors %}
 <div class="layout-split">
-<section class="card flush">
-  <div class="card-head pad"><h2>{{ icon('sparkle', 16) }} Proposed sequence</h2>
-    <span class="muted small">Reserves upper estimates · conditional, not promised</span></div>
+<section class="card flush spot">
+  <div class="card-head pad"><h2>{{ icon('sparkle', 16) }} Schedule</h2><span class="muted small">Untick anything you don't want</span></div>
   {% if plan.assignments %}
   <form method="post" action="{{ url_for('plan_accept') }}" id="accept-form">
     <input type="hidden" name="version" value="{{ rec.version }}">
-    <table class="table">
-      <thead><tr>
-        <th class="col-check"><input type="checkbox" checked data-select-all aria-label="Select all"></th>
-        <th>Task</th><th>Assignee</th><th>Window</th><th>Due</th></tr></thead>
-      <tbody>
+    <ul class="schedule">
       {% for a in plan.assignments|sort(attribute='start') %}{% set t = tasks[a.task_id] %}
-        <tr id="row-{{ a.task_id }}" class="{{ 'row-risk' if a.at_risk }}">
-          <td class="col-check"><input type="checkbox" name="ids" value="{{ a.task_id }}" checked></td>
-          <td><div class="cell-title"><span>{{ t.name }}</span>
-              {% if t.urgency == 'urgent' %}<span class="badge badge-danger sm">{{ icon('bolt', 11) }} Urgent</span>{% endif %}</div>
-            <div class="cell-sub"><span class="id">{{ a.task_id }}</span> · {{ t.skill }} · {{ (t.effort_min or t.effort_max)/60 }}–{{ t.effort_max/60 }}h
-              {% if a.at_risk %}<span class="danger-text"> · finishes {{ a.end|hhmm }}, after its deadline</span>{% endif %}</div></td>
-          <td><div class="assignee"><span class="avatar xs" style="--h: {{ names[a.staff_id]|hue }}">{{ names[a.staff_id]|initials }}</span>{{ names[a.staff_id] }}</div></td>
-          <td class="tnum nowrap">{{ a.start|hhmm }} – {{ a.end|hhmm }}</td>
-          <td class="tnum nowrap {{ 'danger-text' if a.at_risk }}">{{ t.deadline|relday }}</td>
-        </tr>
+        <li id="row-{{ a.task_id }}" class="{{ 'is-risk' if a.at_risk }}" style="--i: {{ loop.index0 }}">
+          <input type="checkbox" name="ids" value="{{ a.task_id }}" checked aria-label="Include {{ t.name }}">
+          <div class="slot-time tnum">{{ a.start|hhmm }}<span>{{ a.end|hhmm }}</span></div>
+          <div class="task-main">
+            <div class="task-name">{{ t.name|short }}
+              {% if t.urgency == 'urgent' %}<span class="urgent">{{ icon('bolt', 11) }} Urgent</span>{% endif %}</div>
+            <div class="task-sub">{% if a.at_risk %}<span class="danger-text">Finishes after it's due ({{ t.deadline|relday }})</span>{% else %}Due {{ t.deadline|relday }}{% endif %}</div>
+          </div>
+          <div class="who"><span class="avatar xs" style="--h: {{ names[a.staff_id]|hue }}">{{ names[a.staff_id]|initials }}</span><span>{{ names[a.staff_id].split(' (')[0] }}</span></div>
+        </li>
       {% endfor %}
-      </tbody>
-    </table>
+    </ul>
     <div class="acceptbar">
-      <span><b data-accept-count>{{ plan.assignments|length }}</b> of {{ plan.assignments|length }} selected</span>
-      <button class="btn btn-primary">{{ icon('lock', 14) }} Accept &amp; lock selected</button>
+      <span class="muted"><b data-accept-count>{{ plan.assignments|length }}</b> selected</span>
+      <button class="btn btn-primary btn-glow">{{ icon('lock', 14) }} Lock in plan</button>
     </div>
   </form>
   {% else %}
-    <div class="empty sm"><div class="empty-art">{{ icon('sparkle', 24) }}</div><h3>Nothing to propose</h3>
-      <p>No ready task fits anyone's remaining time. See the reasons on the right.</p></div>
+    {% if rec.commitments %}
+    <div class="empty sm"><div class="empty-art success">{{ icon('check', 24) }}</div><h3>All set</h3>
+      <p>Everything that fits today is locked in below.</p></div>
+    {% else %}
+    <div class="empty sm"><div class="empty-art">{{ icon('sparkle', 24) }}</div><h3>Nothing to schedule</h3>
+      <p>No ready task fits anyone's free time.</p></div>
+    {% endif %}
   {% endif %}
 
   {% if rec.changes %}
-  <div class="changes">
-    <h3>{{ icon('revise', 14) }} Changed since you last looked</h3>
+  <details class="changes">
+    <summary>{{ icon('revise', 14) }} {{ rec.changes|length }} change{{ 's' if rec.changes|length != 1 }} since you last looked</summary>
     <ul>{% for ch in rec.changes %}
-      <li><span class="id">{{ ch.task_id }}</span>
-        <span class="muted">{% if ch.before %}{{ names.get(ch.before[0], ch.before[0]) }} {{ ch.before[1]|hhmm }}{% else %}not proposed{% endif %}</span>
+      <li>{{ (tasks[ch.task_id].name if ch.task_id in tasks else ch.task_id)|short }}:
+        <span class="muted">{% if ch.before %}{{ names.get(ch.before[0], ch.before[0]) }} {{ ch.before[1]|hhmm }}{% else %}not planned{% endif %}</span>
         {{ icon('arrow', 12) }}
-        {% if ch.after %}{{ names.get(ch.after[0], ch.after[0]) }} {{ ch.after[1]|hhmm }}{% else %}not proposed{% endif %}</li>
+        {% if ch.after %}{{ names.get(ch.after[0], ch.after[0]) }} {{ ch.after[1]|hhmm }}{% else %}not planned{% endif %}</li>
     {% endfor %}</ul>
-  </div>
+  </details>
   {% endif %}
 </section>
 
-<section class="card">
-  <div class="card-head"><h2>{{ icon('info', 16) }} Not scheduled, and why</h2>
-    {% if plan.blocked %}<span class="count">{{ plan.blocked|length }}</span>{% endif %}</div>
-  {% set cats = [('capacity', 'No slot today', 'clock'), ('missing_info', 'Needs information', 'info'), ('no_staff', 'No qualified staff', 'users'), ('blocked', 'Waiting on prerequisites', 'flag')] %}
-  {% for key, label, ic in cats %}
-    {% set rows = plan.blocked|selectattr('category', 'equalto', key)|list %}
-    {% if rows %}
-    <div class="reason-group">
-      <div class="reason-head">{{ icon(ic, 14) }} {{ label }} <span class="muted">{{ rows|length }}</span></div>
-      <ul class="reasons">{% for b in rows %}
-        <li><div>{{ tasks[b.task_id].name }} <span class="id">{{ b.task_id }}</span></div>
-          <div class="cell-sub">{{ b.reason }}</div></li>
-      {% endfor %}</ul>
-    </div>
-    {% endif %}
-  {% endfor %}
-  {% if not plan.blocked %}<div class="all-clear">{{ icon('check', 18) }} Every ready task has a proposal.</div>{% endif %}
+<section class="card spot">
+  <div class="card-head"><h2>{{ icon('info', 16) }} Can't start today</h2></div>
+  {% if plan.blocked %}
+  {% set ICON = {'capacity': 'clock', 'missing_info': 'info', 'no_staff': 'users', 'blocked': 'flag'} %}
+  <ul class="reasons">
+    {% for b in plan.blocked|sort(attribute='category') %}
+      <li><span class="inbox-icon">{{ icon(ICON[b.category], 14) }}</span>
+        <div><div class="task-name">{{ tasks[b.task_id].name|short }}</div><div class="task-sub">{{ b.reason }}</div></div></li>
+    {% endfor %}
+  </ul>
+  {% else %}
+    <div class="all-clear">{{ icon('check', 18) }} Everything ready has a slot.</div>
+  {% endif %}
 </section>
 </div>
 {% endif %}
 
-<section class="card flush">
-  <div class="card-head pad"><h2>{{ icon('lock', 16) }} Locked commitments</h2>
-    <span class="muted small">Never moved by replanning; unlock to release</span></div>
-  {% if rec.commitments %}
-  <table class="table">
-    <thead><tr><th>Task</th><th>Assignee</th><th>Window</th><th class="col-actions"></th></tr></thead>
-    <tbody>
+{% if rec.commitments %}
+<section class="card flush spot">
+  <div class="card-head pad"><h2>{{ icon('lock', 16) }} Locked in</h2><span class="muted small">Replanning won't move these</span></div>
+  <ul class="schedule locked">
     {% for c in rec.commitments|sort(attribute='start') %}
-      <tr id="row-{{ c.task_id }}"><td><div class="cell-title"><span>{{ tasks[c.task_id].name if c.task_id in tasks else c.task_id }}</span>
-            {% if c.task_id in tasks and tasks[c.task_id].is_done %}<span class="badge badge-success sm"><i class="dot"></i>Done</span>{% endif %}</div>
-          <div class="cell-sub"><span class="id">{{ c.task_id }}</span></div></td>
-        <td><div class="assignee"><span class="avatar xs" style="--h: {{ names.get(c.staff_id, c.staff_id)|hue }}">{{ names.get(c.staff_id, c.staff_id)|initials }}</span>{{ names.get(c.staff_id, c.staff_id) }}</div></td>
-        <td class="tnum nowrap">{{ c.start|hhmm }} – {{ c.end|hhmm }}</td>
-        <td class="col-actions"><form method="post" action="{{ url_for('commitment_unlock', tid=c.task_id) }}">
-          <button class="btn btn-sm">{{ icon('unlock', 13) }} Unlock</button></form></td></tr>
-    {% endfor %}</tbody>
-  </table>
-  {% else %}
-    <div class="empty sm"><p>No commitments yet. Accept proposals above to lock them in.</p></div>
-  {% endif %}
+      <li id="row-{{ c.task_id }}">
+        <span class="lock-mark">{{ icon('lock', 13) }}</span>
+        <div class="slot-time tnum">{{ c.start|hhmm }}<span>{{ c.end|hhmm }}</span></div>
+        <div class="task-main"><div class="task-name">{{ (tasks[c.task_id].name if c.task_id in tasks else c.task_id)|short }}
+          {% if c.task_id in tasks and tasks[c.task_id].is_done %}<span class="status status-success"><i class="dot"></i>Done</span>{% endif %}</div></div>
+        <div class="who"><span class="avatar xs" style="--h: {{ names.get(c.staff_id, c.staff_id)|hue }}">{{ names.get(c.staff_id, c.staff_id)|initials }}</span><span>{{ names.get(c.staff_id, c.staff_id).split(' (')[0] }}</span></div>
+        <form method="post" action="{{ url_for('commitment_unlock', tid=c.task_id) }}">
+          <button class="btn btn-sm">{{ icon('unlock', 13) }} Unlock</button></form>
+      </li>
+    {% endfor %}
+  </ul>
 </section>
+{% endif %}
 {% endblock %}

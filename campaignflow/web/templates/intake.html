@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% from "_icons.html" import icon %}
-{% block title %}Campaigns & team · CampaignFlow{% endblock %}
-{% block heading %}Campaigns &amp; team{% endblock %}
-{% block subheading %}Templates fill in steps, skills, dependencies and effort ranges. Deadlines are inherited from the campaign.{% endblock %}
+{% block title %}Campaigns · CampaignFlow{% endblock %}
+{% block heading %}Campaigns{% endblock %}
+{% block subheading %}Pick a template. The steps, links and time estimates are filled in for you.{% endblock %}
 {% block content %}
 <div class="layout-split wide-left">
 <div>
-  <form method="post" action="{{ url_for('campaigns_add') }}" class="card form-card">
+  <form method="post" action="{{ url_for('campaigns_add') }}" class="card form-card spot">
     <div class="card-head"><h2>{{ icon('layers', 16) }} New campaign</h2></div>
     <span class="label">Template</span>
     <div class="templates">
@@ -34,7 +34,7 @@
     <div class="form-foot"><button class="btn btn-primary">{{ icon('plus', 14) }} Create campaign</button></div>
   </form>
 
-  <details class="card form-card collapsible">
+  <details class="card form-card collapsible spot">
     <summary class="card-head"><h2>{{ icon('plus', 16) }} Add an ad-hoc task or gate</h2>{{ icon('chevron', 16, 'caret') }}</summary>
     <form method="post" action="{{ url_for('tasks_add') }}">
       {% set t = none %}
@@ -45,7 +45,7 @@
 </div>
 
 <div id="team">
-  <div class="card flush">
+  <div class="card flush spot">
     <div class="card-head pad"><h2>{{ icon('users', 16) }} Team</h2><span class="count">{{ st.staff|length }}</span></div>
     <ul class="team-list">
     {% for s in st.staff.values() %}
@@ -60,8 +60,9 @@
     </ul>
   </div>
 
-  <form method="post" action="{{ url_for('staff_add') }}" class="card form-card">
-    <div class="card-head"><h2>{{ icon('plus', 16) }} Add team member</h2></div>
+  <details class="card form-card collapsible spot">
+  <summary class="card-head"><h2>{{ icon('plus', 16) }} Add team member</h2>{{ icon('chevron', 16, 'caret') }}</summary>
+  <form method="post" action="{{ url_for('staff_add') }}">
     <div class="fields">
       <div class="field span-2"><label for="s-name">Name</label><input id="s-name" name="name" required placeholder="e.g. Ana (editor)"></div>
       <div class="field span-2"><label for="s-skills">Skills</label><input id="s-skills" name="skills" required placeholder="editing, writing">
@@ -72,6 +73,7 @@
     </div>
     <div class="form-foot"><button class="btn btn-primary">{{ icon('plus', 14) }} Add member</button></div>
   </form>
+  </details>
 </div>
 </div>
 {% endblock %}

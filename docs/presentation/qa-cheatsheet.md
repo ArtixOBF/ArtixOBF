@@ -43,7 +43,7 @@ No, and we assert identical schedules in the benchmark.
 1. Skipping someone whose longest free block is shorter than the task is safe: they can't fit it.
 2. Staff are scanned in tie-break order, so once someone can start at the earliest possible moment, nobody later can beat them.
 
-The two rules made allocation 1.2–1.4× faster.
+The two rules made allocation 1.3–1.4× faster (22–27% less time).
 
 ## Complexity
 

@@ -1,0 +1,56 @@
+{
+  "voice": "am_michael",
+  "speed": 1.0,
+  "scenes": [
+    {"id": "hook", "lead": 0.6, "tail": 0.5, "gap": 0.18, "lines": [
+      {"id": "h1", "cap": "It's 9:47 AM.", "say": "It's nine forty-seven, A M."},
+      {"id": "h2", "cap": "Three clients.", "say": "Three clients."},
+      {"id": "h3", "cap": "One editor.", "say": "One editor."},
+      {"id": "h4", "cap": "Four deadlines.", "say": "Four deadlines."},
+      {"id": "h5", "cap": "Which job goes first?", "say": "Which job goes first?", "pre": 0.5}
+    ]},
+    {"id": "problem", "lead": 0.5, "tail": 0.9, "gap": 0.35, "lines": [
+      {"id": "p1", "cap": "Working in the order requests arrive feels fair.", "say": "Working in the order requests arrive, feels fair."},
+      {"id": "p2", "cap": "But it doesn't know filming isn't done yet, or that a banner is due at noon.", "say": "But it doesn't know filming isn't done yet. Or that a banner is due at noon."},
+      {"id": "p3", "cap": "And when it guesses wrong, work ships late.", "say": "And when it guesses wrong, work ships late.", "pre": 0.3}
+    ]},
+    {"id": "turn", "lead": 1.3, "tail": 1.1, "gap": 0.3, "lines": [
+      {"id": "t1", "cap": "Meet CampaignFlow: daily production planning for small agencies.", "say": "Meet CampaignFlow. Daily production planning, for small agencies."}
+    ]},
+    {"id": "daily", "lead": 1.4, "tail": 0.6, "gap": 0.35, "lines": [
+      {"id": "d1", "cap": "Every morning starts with a quick check-in.", "say": "Every morning starts with a quick check-in."},
+      {"id": "d2", "cap": "CampaignFlow only asks what changed.", "say": "CampaignFlow only asks what changed."},
+      {"id": "d3", "cap": "Did the client approve? Who's in today?", "say": "Did the client approve? Who's in today?"},
+      {"id": "d4", "cap": "Two taps, and you're up to date.", "say": "Two taps, and you're up to date."}
+    ]},
+    {"id": "plan", "lead": 1.2, "tail": 0.8, "gap": 0.4, "lines": [
+      {"id": "q1", "cap": "Press Plan.", "say": "Press, Plan."},
+      {"id": "q2", "cap": "A min-heap ranks every ready task by urgency and deadline,", "say": "A min heap ranks every ready task, by urgency and deadline,"},
+      {"id": "q3", "cap": "and a greedy scheduler fits each one into a teammate's free time, around meetings and lunch.", "say": "and a greedy scheduler fits each one into a teammate's free time, around meetings and lunch.", "pre": 0.6},
+      {"id": "q4", "cap": "Switch to first-come, first-served, and see exactly what it would cost.", "say": "Switch to first come, first served, and see exactly what it would cost.", "pre": 0.8}
+    ]},
+    {"id": "lock", "lead": 1.0, "tail": 0.8, "gap": 0.4, "lines": [
+      {"id": "l1", "cap": "Happy with it? Lock it in.", "say": "Happy with it? Lock it in."},
+      {"id": "l2", "cap": "Locked work never moves when you replan, until you choose to unlock it.", "say": "Locked work never moves when you re-plan. Until you choose to unlock it.", "pre": 1.0}
+    ]},
+    {"id": "campaign", "lead": 1.0, "tail": 0.8, "gap": 0.4, "lines": [
+      {"id": "n1", "cap": "New campaigns take seconds.", "say": "New campaigns take seconds."},
+      {"id": "n2", "cap": "Templates fill in every step, link and estimate.", "say": "Templates fill in every step, link, and estimate."},
+      {"id": "n3", "cap": "And when a client asks for changes, a new revision round is added, without reopening finished work.", "say": "And when a client asks for changes, a new revision round is added, without reopening finished work.", "pre": 0.8}
+    ]},
+    {"id": "cycle", "lead": 1.0, "tail": 1.2, "gap": 0.4, "lines": [
+      {"id": "c1", "cap": "And it's safe by design.", "say": "And it's safe, by design."},
+      {"id": "c2", "cap": "If someone creates an impossible loop, depth-first search catches it, and shows you exactly where.", "say": "If someone creates an impossible loop, depth first search catches it. And shows you exactly where.", "pre": 0.6}
+    ]},
+    {"id": "impact", "lead": 1.0, "tail": 1.0, "gap": 0.7, "lines": [
+      {"id": "i1", "cap": "On our demo day: zero late tasks, where first-come, first-served had one.", "say": "On our demo day: zero late tasks. Where first come, first served, had one."},
+      {"id": "i2", "cap": "Across twenty synthetic test days of 250 tasks: about 24% less projected lateness.", "say": "Across twenty synthetic test days of two hundred fifty tasks: about twenty-four percent less projected lateness."},
+      {"id": "i3", "cap": "And it plans all 250 in about two milliseconds.", "say": "And it plans all two hundred fifty, in about two milliseconds."}
+    ]},
+    {"id": "end", "lead": 0.6, "tail": 3.2, "gap": 0.35, "lines": [
+      {"id": "e1", "cap": "Stop juggling deadlines.", "say": "Stop juggling deadlines."},
+      {"id": "e2", "cap": "Start shipping.", "say": "Start shipping."},
+      {"id": "e3", "cap": "CampaignFlow.", "say": "CampaignFlow.", "pre": 0.5}
+    ]}
+  ]
+}
